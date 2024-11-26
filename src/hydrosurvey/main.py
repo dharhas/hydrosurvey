@@ -8,6 +8,8 @@ import typer
 from rich import print
 from shapely.geometry import Point
 
+from .interpolate import aeidw
+
 app = typer.Typer()
 
 
@@ -26,38 +28,7 @@ def interpolate_lake(config: Optional[Path]):
     with open(config, "rb") as f:
         config = tomllib.load(f)
     print(config)
-
-    boundary = gpd.read_file(config["boundary"]["filepath"])
-    lines = gpd.read_file(config["interpolation_centerlines"]["filepath"])
-    polygons = gpd.read_file(config["interpolation_polygons"]["filepath"])
-
-    # Read the survey points CSV file
-    columns = {
-        config["survey_points"]["x_coord_column"]: "x_coord",
-        config["survey_points"]["y_coord_column"]: "y_coord",
-        config["survey_points"]["surface_elevation_column"]: "surface_elevation",
-    }
-
-    if config["survey_points"].get("preimpoundment_elevation_column"):
-        columns.update(
-            {
-                config["survey_points"][
-                    "preimpoundment_elevation_column"
-                ]: "preimpoundment_elevation"
-            }
-        )
-
-    # Read the CSV file into a pandas DataFrame
-    df = pd.read_csv(
-        config["survey_points"]["filepath"], usecols=columns.keys()
-    ).rename(columns=columns)
-
-    # return df
-    # Create a geometry column from the longitude and latitude columns
-    geometry = [Point(xy) for xy in zip(df["x_coord"], df["y_coord"])]
-
-    # Create a GeoDataFrame
-    survey_points = gpd.GeoDataFrame(df, geometry=geometry)
+    aeidw(config)
 
 
 @app.command()
