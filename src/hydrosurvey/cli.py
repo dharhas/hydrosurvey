@@ -23,8 +23,8 @@ def download_usgs_data(usgs_site: str, start_date: str, end_date: str):
 
 
 @app.command()
-def interpolate_lake(config: Optional[Path]):
-    with open(config, "rb") as f:
+def interpolate_lake(configfile: Optional[Path]):
+    with open(configfile, "rb") as f:
         config = tomllib.load(f)
     print(config)
     interpolated_points = aeidw(config)

@@ -17,6 +17,9 @@ platforms = ["osx-arm64"]
 [tool.pixi.pypi-dependencies]
 hydrosurvey = { path = ".", editable = true }
 
+[project.scripts]
+lake-tools = "hydrosurvey:app"
+
 [tool.pixi.tasks]
 
 [tool.pixi.dependencies]
