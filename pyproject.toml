@@ -18,7 +18,7 @@ platforms = ["osx-arm64"]
 hydrosurvey = { path = ".", editable = true }
 
 [project.scripts]
-lake-tools = "hydrosurvey.cli:app"
+hstools = "hydrosurvey.cli:app"
 
 [tool.pixi.tasks]
 
