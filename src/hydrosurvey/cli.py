@@ -69,7 +69,7 @@ def is_python_file(path: str) -> bool:
 
 
 @app.command()
-def create_config(configfile: Optional[Path]):
+def new_config(configfile: Optional[Path]):
     config = {}
 
     # read lake metadata
