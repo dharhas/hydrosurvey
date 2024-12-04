@@ -1,8 +1,11 @@
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point
 from tqdm import tqdm
+
+from .methods import idw
+from .sn import Coord_SN
 
 
 def polygon_to_mesh(polygon: gpd.GeoDataFrame, resolution: float):
@@ -46,8 +49,8 @@ def generate_target_points(polygons: gpd.GeoDataFrame):
         total=polygons.shape[0],
         desc="Generating target interpolation points for each polygon",
     ):
-        priority = polygons.loc[idx]["priority"]
-        resolution = polygons.loc[idx]["gridspace"]
+        priority = polygons["priority"].loc[idx]
+        resolution = polygons["gridspace"].loc[idx]
         grid = polygon_to_mesh(polygons.loc[[idx]], resolution)
         higher_priority = polygons.loc[polygons["priority"] < priority]
         masked[idx] = mask_higher_priority_polygons(grid, higher_priority)
@@ -61,51 +64,6 @@ def densify_geometry(gdf: gpd.GeoDataFrame, max_segment_length=10):
     dense_gdf = gdf.copy()
     dense_gdf["geometry"] = dense_gdf.segmentize(max_segment_length)
     return dense_gdf
-
-
-def transform_to_sn_coords_new(centerline: gpd.GeoDataFrame, points: gpd.GeoDataFrame):
-    """
-    Transform the centerline and points to the SN coordinate system.
-    """
-
-    # centerline = densify_geometry(centerline) # do this outside this function
-
-    # extract points from the centerline
-    # points = centerline["geometry"].coords
-
-    centerline_points = np.array(centerline["geometry"].coords.xy).T
-
-    # Calculate `S` the cumulative distance along the centerline
-    # ----------------------------------------------------------
-
-    # Calculate the differences between consecutive points
-    diffs = np.diff(centerline_points, axis=0)
-
-    # Calculate the perpendicular distances between the centerline and the points
-    distances = np.zeros(len(centerline_points))
-    distances[1:] = np.sqrt(np.sum(diffs**2, axis=1)).cumsum()
-
-    # Calculate the normal distance between each point and the closest centerline point
-    # ---------------------------------------------------------------------------------
-
-    centerline_points_gdf = gpd.GeoDataFrame(
-        gpd.GeoSeries(
-            gpd.points_from_xy(x=centerline.coords.xy[0], y=centerline.coords.xy[1]),
-            crs=centerline.crs,
-            name="geometry",
-        )
-    )
-
-    nearest_points = gpd.sjoin_nearest(
-        points, centerline_points_gdf, distance_col="n_coord"
-    ).rename(columns={"index_right": "centerline_index"})
-
-    nearest_points["s_coord"] = distances[nearest_points["centerline_index"]]
-    nearest_points["n_coord"] = nearest_points["n_coord"] * np.sign(
-        nearest_points["s_coord"]
-    )
-
-    return nearest_points
 
 
 def read_lake_data(config: dict):
@@ -192,10 +150,6 @@ def aeidw(config: dict):
     dense_boundary = densify_geometry(
         boundary, max_segment_length=config["boundary"]["max_segment_length"]
     )
-    dense_centerlines = densify_geometry(
-        lines,
-        max_segment_length=config["interpolation_centerlines"]["max_segment_length"],
-    )
 
     # add lake boundary elevations to survey_points
     xy = dense_boundary.iloc[0]["geometry"].exterior.coords.xy
@@ -219,4 +173,62 @@ def aeidw(config: dict):
     # remove points outside the boundary or within islands
     target_points = target_points.clip(boundary)
 
-    # transform the centerlines and
+    for idx, _ in tqdm(
+        polygons.iterrows(),
+        total=polygons.shape[0],
+        desc="Interpolating each polygon",
+    ):
+        method = polygons["method"].loc[idx]
+        params = polygons["params"].loc[idx]
+
+        # interpolate the elevations
+        if method.lower() == "aeidw":
+            # get the centerline for the polygon
+            centerline = lines.loc[[idx]]
+            source_points = survey_points.clip(
+                polygons.loc[[idx]].buffer(config["interpolation_polygons"]["buffer"])
+            )
+
+            target_idx = target_points["id"] == idx
+
+            # transform the survey_points and target points to SN coordinates
+            sn_transform = Coord_SN(centerline)
+            source_points_sn = sn_transform.transform_xy_to_sn(source_points)
+            target_points_sn = sn_transform.transform_xy_to_sn(
+                target_points[target_idx]
+            )
+
+            # apply ellipsivity factor
+            source_points_sn["n_coord"] = source_points_sn["n_coord"] * params
+            target_points_sn["n_coord"] = target_points_sn["n_coord"] * params
+
+            # interpolate the elevations
+            if "preimpoundment_elevation" in source_points_sn.columns:
+                columns = ["surface_elevation", "preimpoundment_elevation"]
+            else:
+                columns = ["surface_elevation"]
+
+            new_elevs = idw(
+                source_points_sn[["s_coord", "n_coord"]].to_numpy(),
+                source_points_sn[columns].to_numpy(),
+                target_points_sn[["s_coord", "n_coord"]].to_numpy(),
+            )
+
+            # add the interpolated elevations to the target_points
+            target_points.loc[target_idx, "surface_elevation"] = new_elevs[:, 0]
+            if "preimpoundment_elevation" in source_points_sn.columns:
+                target_points.loc[target_idx, "preimpoundment_elevation"] = new_elevs[
+                    :, 1
+                ]
+        else:
+            print(f"Interpolation method {method} not recognized for polygon id {idx}")
+
+    # concatenate the survey points and target points
+    all_points = gpd.GeoDataFrame(
+        pd.concat([survey_points, target_points], ignore_index=True),
+        crs=survey_points.crs,
+    )
+    return all_points
+    # write out the interpolated elevations
+    # print(f"Writing interpolated elevations to {config['output']['filepath']}")
+    # all_points.to_file(config["output"]["filepath"], driver="GeoJSON")
