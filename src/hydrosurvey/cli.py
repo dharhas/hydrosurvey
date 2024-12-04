@@ -1,3 +1,4 @@
+import os
 import tomllib
 from pathlib import Path
 from typing import Optional
@@ -71,13 +72,21 @@ def is_python_file(path: str) -> bool:
 def create_config(configfile: Optional[Path]):
     config = {}
 
+    # read lake metadata
+    ############################
+
     lake = questionary.text("Enter Lake Name").ask()
     survey_year = questionary.text("Enter Survey Year").ask()
     config["lake"] = {}
     config["lake"]["name"] = lake
     config["lake"]["survey_year"] = int(survey_year)
 
-    boundary_file = questionary.path("Enter Boundary File").ask()
+    # read boundary
+    ############################
+    boundary_file = questionary.path(
+        "Enter Boundary Shapefile",
+        file_filter=lambda p: p.endswith("shp") or os.path.isdir(p),
+    ).ask()
 
     # read boundary file to get column names
     print(gpd.read_file(boundary_file).columns)
@@ -90,12 +99,17 @@ def create_config(configfile: Optional[Path]):
     ).ask()
 
     config["boundary"] = {}
-    config["boundary"]["filepath"] = boundary_file
+    config["boundary"]["filepath"] = str(Path(boundary_file).absolute())
     config["boundary"]["elevation_column"] = boundary_elevation_column
     config["boundary"]["max_segment_length"] = int(boundary_max_segment_length)
 
     # read survey points
-    survey_points_file = questionary.path("Enter Survey Points File").ask()
+    ############################
+
+    survey_points_file = questionary.path(
+        "Enter Survey Points CSV File",
+        file_filter=lambda p: p.endswith("csv") or os.path.isdir(p),
+    ).ask()
     choices = pd.read_csv(survey_points_file, nrows=0).columns.tolist()
     survey_x_coord = questionary.select(
         "Choose survey x-coord column", choices=choices
@@ -125,7 +139,7 @@ def create_config(configfile: Optional[Path]):
     survey_crs = questionary.text("Enter Survey CRS").ask()
 
     config["survey_points"] = {}
-    config["survey_points"]["filepath"] = survey_points_file
+    config["survey_points"]["filepath"] = str(Path(survey_points_file).absolute())
     config["survey_points"]["x_coord_column"] = survey_x_coord
     config["survey_points"]["y_coord_column"] = survey_y_coord
     config["survey_points"]["surface_elevation_column"] = survey_surface_elevation
@@ -135,7 +149,12 @@ def create_config(configfile: Optional[Path]):
     config["survey_points"]["crs"] = survey_crs
 
     # read centerlines
-    centerlines_file = questionary.path("Enter Centerlines File").ask()
+    ############################
+
+    centerlines_file = questionary.path(
+        "Enter Centerlines File",
+        file_filter=lambda p: p.endswith("shp") or os.path.isdir(p),
+    ).ask()
     centerline_id_column = questionary.select(
         "Choose Polygon ID Column",
         choices=gpd.read_file(centerlines_file, rows=0).columns,
@@ -144,14 +163,21 @@ def create_config(configfile: Optional[Path]):
         "Enter Max Centerline Segment Length", default="10"
     ).ask()
     config["interpolation_centerlines"] = {}
-    config["interpolation_centerlines"]["filepath"] = centerlines_file
+    config["interpolation_centerlines"]["filepath"] = str(
+        Path(centerlines_file).absolute()
+    )
     config["interpolation_centerlines"]["polygon_id_column"] = centerline_id_column
     config["interpolation_centerlines"]["max_segment_length"] = int(
         centerline_max_segment_length
     )
 
     # read interpolations polygons
-    polygons_file = questionary.path("Enter Polygons File").ask()
+    ############################
+
+    polygons_file = questionary.path(
+        "Enter Polygons Shapefile",
+        file_filter=lambda p: p.endswith("shp") or os.path.isdir(p),
+    ).ask()
     choices = gpd.read_file(polygons_file, rows=0).columns.tolist()
     polygon_id_column = questionary.select(
         "Choose Polygon ID Column", choices=choices
@@ -175,7 +201,7 @@ def create_config(configfile: Optional[Path]):
     buffer = questionary.text("Enter Polygon Buffer Distance", default="100").ask()
 
     config["interpolation_polygons"] = {}
-    config["interpolation_polygons"]["filepath"] = polygons_file
+    config["interpolation_polygons"]["filepath"] = str(Path(polygons_file).absolute())
     config["interpolation_polygons"]["polygon_id_column"] = polygon_id_column
     config["interpolation_polygons"][
         "grid_spacing_column"
@@ -190,10 +216,13 @@ def create_config(configfile: Optional[Path]):
     config["interpolation_polygons"]["buffer"] = int(buffer)
 
     # read output
+    ############################
     output_file = questionary.path("Enter output File for interpolated points").ask()
     config["output"] = {}
-    config["output"]["filepath"] = output_file
+    config["output"]["filepath"] = str(Path(output_file).absolute())
 
+    # write config file
+    ############################
     with open(configfile, "wb") as f:
         tomli_w.dump(config, f)
 
