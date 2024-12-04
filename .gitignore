@@ -2,3 +2,4 @@
 # pixi environments
 .pixi
 *.egg-info
+src/hydrosurvey/__pycache__/*
