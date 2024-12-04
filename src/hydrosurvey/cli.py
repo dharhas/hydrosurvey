@@ -199,6 +199,9 @@ def create_config(configfile: Optional[Path]):
         "Choose Interpolation Params Column", choices=choices
     ).ask()
     buffer = questionary.text("Enter Polygon Buffer Distance", default="100").ask()
+    nearest_neighbors = questionary.text(
+        "Enter Number of Nearest Neighbors for IDW", default="16"
+    ).ask()
 
     config["interpolation_polygons"] = {}
     config["interpolation_polygons"]["filepath"] = str(Path(polygons_file).absolute())
@@ -214,6 +217,7 @@ def create_config(configfile: Optional[Path]):
         "interpolation_params_column"
     ] = polygon_interpolation_params_column
     config["interpolation_polygons"]["buffer"] = int(buffer)
+    config["interpolation_polygons"]["nearest_neighbors"] = int(nearest_neighbors)
 
     # read output
     ############################

@@ -209,9 +209,10 @@ def aeidw(config: dict):
                 columns = ["surface_elevation"]
 
             new_elevs = idw(
-                source_points_sn[["s_coord", "n_coord"]].to_numpy(),
-                source_points_sn[columns].to_numpy(),
-                target_points_sn[["s_coord", "n_coord"]].to_numpy(),
+                coords=source_points_sn[["s_coord", "n_coord"]].to_numpy(),
+                values=source_points_sn[columns].to_numpy(),
+                query_points=target_points_sn[["s_coord", "n_coord"]].to_numpy(),
+                nnear=config["interpolation_polygons"].get("nearest_neighbors", 16),
             )
 
             # add the interpolated elevations to the target_points
