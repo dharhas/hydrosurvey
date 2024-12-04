@@ -18,7 +18,7 @@ platforms = ["osx-arm64"]
 hydrosurvey = { path = ".", editable = true }
 
 [project.scripts]
-lake-tools = "hydrosurvey:app"
+lake-tools = "hydrosurvey.cli:app"
 
 [tool.pixi.tasks]
 
@@ -35,3 +35,5 @@ scipy = "*"
 shapely = "*"
 bokeh = ">=3.5"
 typer = ">=0.13.1,<0.14"
+questionary = ">=2.0.1,<3"
+tomli-w = ">=1.1.0,<2"
