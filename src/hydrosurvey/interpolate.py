@@ -229,6 +229,3 @@ def aeidw(config: dict):
         crs=survey_points.crs,
     )
     return all_points
-    # write out the interpolated elevations
-    # print(f"Writing interpolated elevations to {config['output']['filepath']}")
-    # all_points.to_file(config["output"]["filepath"], driver="GeoJSON")

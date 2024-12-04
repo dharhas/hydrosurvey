@@ -6,7 +6,6 @@ import geopandas as gpd
 import pandas as pd
 import typer
 from rich import print
-from shapely.geometry import Point
 
 from .interpolate import aeidw
 
@@ -28,12 +27,29 @@ def interpolate_lake(config: Optional[Path]):
     with open(config, "rb") as f:
         config = tomllib.load(f)
     print(config)
-    aeidw(config)
+    interpolated_points = aeidw(config)
+
+    # write out the interpolated elevations
+    print(f"Writing interpolated elevations to {config['output']['filepath']}")
+    points_to_csv(interpolated_points, config["output"]["filepath"])
 
 
 @app.command()
 def calculate_eac(name: str):
     print(f"Hello {name}")
+
+
+def points_to_csv(gdf: gpd.GeoDataFrame, output_file: str):
+    # Extract coordinates
+    gdf["x_coordinate"] = gdf.geometry.x
+    gdf["y_coordinate"] = gdf.geometry.y
+
+    # Drop the geometry column
+    gdf = gdf.drop(columns="geometry")
+
+    # Write to CSV
+    print(f"Writing DataFrame to {output_file}")
+    gdf.to_csv(output_file, index=False)
 
 
 if __name__ == "__main__":
