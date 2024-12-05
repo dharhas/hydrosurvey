@@ -23,9 +23,33 @@ app = typer.Typer(
 
 
 @app.command()
-def sdi_to_csv(input_file: str, output_file: str):
-    raise NotImplementedError("This function is not implemented yet.")
-    print(f"Converting {input_file} to {output_file}")
+def merge_xyz(input_folder: Path, output_file: str, folder_prefix: str = "Srf"):
+    all_files = [x for x in input_folder.rglob("*.xyz") if folder_prefix in str(x)]
+
+    current_surface = pd.concat(
+        [
+            pd.read_csv(
+                f, names=["x_coord", "y_coord", "current_surface_z"], sep=r"\s+"
+            )
+            for f in all_files
+            if str(f).endswith("_1.xyz")
+        ],
+        ignore_index=True,
+    )
+
+    preimpoundment_surface = pd.concat(
+        [
+            pd.read_csv(f, names=["x_coord", "y_coord", "preimpoundment_z"], sep=r"\s+")
+            for f in all_files
+            if str(f).endswith("_2.xyz")
+        ],
+        ignore_index=True,
+    )
+
+    current_surface["preimpoundment_z"] = preimpoundment_surface["preimpoundment_z"]
+
+    current_surface.to_csv(output_file, index=False)
+    print(f"Merged file saved to {output_file}")
 
 
 @app.command()
