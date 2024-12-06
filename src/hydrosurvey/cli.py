@@ -28,6 +28,11 @@ app = typer.Typer(
 
 @app.command()
 def merge_xyz(input_folder: Path, output_file: str, folder_prefix: str = "Srf"):
+    """
+    Merge current and preimpoundment surface xyz files into a single csv file.
+
+    Note: Does not do tidal corrections.
+    """
     all_files = [x for x in input_folder.rglob("*.xyz") if folder_prefix in str(x)]
 
     current_surface = pd.concat(
@@ -56,145 +61,17 @@ def merge_xyz(input_folder: Path, output_file: str, folder_prefix: str = "Srf"):
     print(f"Merged file saved to {output_file}")
 
 
-@app.command()
-def download_usgs_data(usgs_site: str, start_date: str, end_date: str):
-    raise NotImplementedError("This function is not implemented yet.")
-    print(f"Downloading USGS data for {usgs_site} from {start_date} to {end_date}")
-
-
-@app.command()
-def interpolate_lake(configfile: Optional[Path]):
-    with open(configfile, "rb") as f:
-        config = tomllib.load(f)
-    print(config)
-    interpolated_points = aeidw(config)
-
-    # write out the interpolated elevations
-    print(f"Writing interpolated elevations to {config['output']['filepath']}")
-    points_to_csv(interpolated_points, config["output"]["filepath"])
-
-
-@app.command()
-def compute_eac(
-    raster_file: Path,
-    output_file: Path,
-    lake_elevation: Optional[float] = None,
-    step_size: Optional[float] = None,
-    nodata: Optional[float] = None,
-    # plot_areas: Optional[bool] = None,
-    plot_curve: Optional[bool] = None,
-):
-    """
-    Calculates elevation-area-capacity curve from lake DEM in tiff format.
-    """
-    da = xr.open_dataset(raster_file, engine="rasterio")
-    with rasterio.open(raster_file) as src:
-        pixel_dx, pixel_dy = src.res
-        nodata = src.nodata
-
-    pixel_area = pixel_dx * pixel_dy
-
-    if not nodata:
-        nodata = -9999.0
-
-    da = da.where(da != nodata)
-
-    if not lake_elevation:
-        lake_elevation = da.max(skipna=True).to_dataarray().values[0]
-
-    if not step_size:
-        step_size = 0.1
-
-    lowest_elevation = da.min(skipna=True).to_dataarray().values[0]
-    eac = []
-
-    # make elevation intevals clean numbers
-    e1 = (np.floor(lake_elevation / step_size) * step_size).round(decimals=2)
-    elevations = np.arange(e1, lowest_elevation, -step_size)
-    elevations = np.insert(elevations, 0, lake_elevation)
-
-    # get rid of extra elevation caused by floating point precision issues
-    if np.abs(elevations[-1] - lowest_elevation) < 0.005:
-        elevations[-1] = lowest_elevation
-
-    # make sure lowest point is included
-    if elevations[-1] > lowest_elevation:
-        elevations = np.append(elevations, lowest_elevation)
-
-    # Calculate Area & Volume for each elevation
-    for elev in elevations:
-        # mask all pixels where depth from elevation is negative
-        depths = elev - da
-        depths = depths.where(depths >= 0)
-        # compute area and volume
-        area = depths.notnull().sum() * pixel_area
-        volume = depths.sum() * pixel_area
-        eac.append(
-            [
-                elev,
-                area.to_dataarray().values[0],
-                volume.to_dataarray().values[0],
-            ]
-        )
-
-        # if plot_areas:
-        #    da.plot(aspect=1, size=8)
-        #    #    plt.title("Lake at %s Elevation" % elev)
-        #    plt.savefig("lake_at_%s.png" % elev)
-        #    plt.close()
-
-    eac = np.array(eac)
-    if plot_curve:
-        plot_eac_curve(eac)
-
-    fmt = "%1.2f, %1.4f, %1.4f"
-    np.savetxt(
-        output_file,
-        eac,
-        header="Elevation, Area, Capacity",
-        delimiter=",",
-        fmt=fmt,
-    )
-    print(f"EAC curve saved to {output_file}")
-
-
-def plot_eac_curve(eac):
-    fig, ax1 = plt.subplots()
-    ax1.plot(eac[:, 1], eac[:, 0], "b")
-    ax1.set_ylabel("Elevation")
-    # Make the y-axis label, ticks and tick labels match the line color.
-    ax1.set_xlabel("Area", color="b")
-    ax1.tick_params("x", colors="b")
-
-    ax2 = ax1.twiny()
-    ax2.plot(eac[:, 2], eac[:, 0], "r")
-    ax2.set_xlabel("Capacity", color="r")
-    ax2.tick_params("x", colors="r")
-    ax2.set_xlim(ax2.get_xlim()[::-1])
-
-    fig.tight_layout()
-    plt.savefig("elevation_area_capacity.png")
-
-
-def points_to_csv(gdf: gpd.GeoDataFrame, output_file: str):
-    # Extract coordinates
-    gdf["x_coordinate"] = gdf.geometry.x
-    gdf["y_coordinate"] = gdf.geometry.y
-
-    # Drop the geometry column
-    gdf = gdf.drop(columns="geometry")
-
-    # Write to CSV
-    print(f"Writing DataFrame to {output_file}")
-    gdf.to_csv(output_file, index=False)
-
-
-def is_python_file(path: str) -> bool:
-    return path.endswith(".py")
+# @app.command()
+# def download_usgs_data(usgs_site: str, start_date: str, end_date: str):
+#    raise NotImplementedError("This function is not implemented yet.")
+#    print(f"Downloading USGS data for {usgs_site} from {start_date} to {end_date}")
 
 
 @app.command()
 def new_config(configfile: Optional[Path]):
+    """
+    Generate a new configuration file for AEIDW lake interpolation.
+    """
     config = {}
 
     # read lake metadata
@@ -356,3 +233,137 @@ def new_config(configfile: Optional[Path]):
         tomli_w.dump(config, f)
 
     print(f"Configuration file written to {configfile}")
+
+
+@app.command()
+def interpolate_lake(configfile: Optional[Path]):
+    """
+    Interpolate lake elevations using the AEIDW method.
+    """
+    with open(configfile, "rb") as f:
+        config = tomllib.load(f)
+    print(config)
+    interpolated_points = aeidw(config)
+
+    # write out the interpolated elevations
+    print(f"Writing interpolated elevations to {config['output']['filepath']}")
+    points_to_csv(interpolated_points, config["output"]["filepath"])
+
+
+@app.command()
+def compute_eac(
+    raster_file: Path,
+    output_file: Path,
+    lake_elevation: Optional[float] = None,
+    step_size: Optional[float] = None,
+    nodata: Optional[float] = None,
+    # plot_areas: Optional[bool] = None,
+    plot_curve: Optional[bool] = None,
+):
+    """
+    Calculates elevation-area-capacity curve from lake DEM in tiff format.
+    """
+    da = xr.open_dataset(raster_file, engine="rasterio")
+    with rasterio.open(raster_file) as src:
+        pixel_dx, pixel_dy = src.res
+        nodata = src.nodata
+
+    pixel_area = pixel_dx * pixel_dy
+
+    if not nodata:
+        nodata = -9999.0
+
+    da = da.where(da != nodata)
+
+    if not lake_elevation:
+        lake_elevation = da.max(skipna=True).to_dataarray().values[0]
+
+    if not step_size:
+        step_size = 0.1
+
+    lowest_elevation = da.min(skipna=True).to_dataarray().values[0]
+    eac = []
+
+    # make elevation intevals clean numbers
+    e1 = (np.floor(lake_elevation / step_size) * step_size).round(decimals=2)
+    elevations = np.arange(e1, lowest_elevation, -step_size)
+    elevations = np.insert(elevations, 0, lake_elevation)
+
+    # get rid of extra elevation caused by floating point precision issues
+    if np.abs(elevations[-1] - lowest_elevation) < 0.005:
+        elevations[-1] = lowest_elevation
+
+    # make sure lowest point is included
+    if elevations[-1] > lowest_elevation:
+        elevations = np.append(elevations, lowest_elevation)
+
+    # Calculate Area & Volume for each elevation
+    for elev in elevations:
+        # mask all pixels where depth from elevation is negative
+        depths = elev - da
+        depths = depths.where(depths >= 0)
+        # compute area and volume
+        area = depths.notnull().sum() * pixel_area
+        volume = depths.sum() * pixel_area
+        eac.append(
+            [
+                elev,
+                area.to_dataarray().values[0],
+                volume.to_dataarray().values[0],
+            ]
+        )
+
+        # if plot_areas:
+        #    da.plot(aspect=1, size=8)
+        #    #    plt.title("Lake at %s Elevation" % elev)
+        #    plt.savefig("lake_at_%s.png" % elev)
+        #    plt.close()
+
+    eac = np.array(eac)
+    if plot_curve:
+        plot_eac_curve(eac)
+
+    fmt = "%1.2f, %1.4f, %1.4f"
+    np.savetxt(
+        output_file,
+        eac,
+        header="Elevation, Area, Capacity",
+        delimiter=",",
+        fmt=fmt,
+    )
+    print(f"EAC curve saved to {output_file}")
+
+
+def plot_eac_curve(eac):
+    fig, ax1 = plt.subplots()
+    ax1.plot(eac[:, 1], eac[:, 0], "b")
+    ax1.set_ylabel("Elevation")
+    # Make the y-axis label, ticks and tick labels match the line color.
+    ax1.set_xlabel("Area", color="b")
+    ax1.tick_params("x", colors="b")
+
+    ax2 = ax1.twiny()
+    ax2.plot(eac[:, 2], eac[:, 0], "r")
+    ax2.set_xlabel("Capacity", color="r")
+    ax2.tick_params("x", colors="r")
+    ax2.set_xlim(ax2.get_xlim()[::-1])
+
+    fig.tight_layout()
+    plt.savefig("elevation_area_capacity.png")
+
+
+def points_to_csv(gdf: gpd.GeoDataFrame, output_file: str):
+    # Extract coordinates
+    gdf["x_coordinate"] = gdf.geometry.x
+    gdf["y_coordinate"] = gdf.geometry.y
+
+    # Drop the geometry column
+    gdf = gdf.drop(columns="geometry")
+
+    # Write to CSV
+    print(f"Writing DataFrame to {output_file}")
+    gdf.to_csv(output_file, index=False)
+
+
+def is_python_file(path: str) -> bool:
+    return path.endswith(".py")
