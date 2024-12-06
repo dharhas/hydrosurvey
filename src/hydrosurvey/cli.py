@@ -4,10 +4,14 @@ from pathlib import Path
 from typing import Optional
 
 import geopandas as gpd
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import questionary
+import rasterio
 import tomli_w
 import typer
+import xarray as xr
 from rich import print
 
 from .interpolate import aeidw
@@ -71,8 +75,105 @@ def interpolate_lake(configfile: Optional[Path]):
 
 
 @app.command()
-def calculate_eac(name: str):
-    raise NotImplementedError("This function is not implemented yet.")
+def compute_eac(
+    raster_file: Path,
+    output_file: Path,
+    lake_elevation: Optional[float] = None,
+    step_size: Optional[float] = None,
+    nodata: Optional[float] = None,
+    # plot_areas: Optional[bool] = None,
+    plot_curve: Optional[bool] = None,
+):
+    """
+    Calculates elevation-area-capacity curve from lake DEM in tiff format.
+    """
+    da = xr.open_dataset(raster_file, engine="rasterio")
+    with rasterio.open(raster_file) as src:
+        pixel_dx, pixel_dy = src.res
+        nodata = src.nodata
+
+    pixel_area = pixel_dx * pixel_dy
+
+    if not nodata:
+        nodata = -9999.0
+
+    da = da.where(da != nodata)
+
+    if not lake_elevation:
+        lake_elevation = da.max(skipna=True).to_dataarray().values[0]
+
+    if not step_size:
+        step_size = 0.1
+
+    lowest_elevation = da.min(skipna=True).to_dataarray().values[0]
+    eac = []
+
+    # make elevation intevals clean numbers
+    e1 = (np.floor(lake_elevation / step_size) * step_size).round(decimals=2)
+    elevations = np.arange(e1, lowest_elevation, -step_size)
+    elevations = np.insert(elevations, 0, lake_elevation)
+
+    # get rid of extra elevation caused by floating point precision issues
+    if np.abs(elevations[-1] - lowest_elevation) < 0.005:
+        elevations[-1] = lowest_elevation
+
+    # make sure lowest point is included
+    if elevations[-1] > lowest_elevation:
+        elevations = np.append(elevations, lowest_elevation)
+
+    # Calculate Area & Volume for each elevation
+    for elev in elevations:
+        # mask all pixels where depth from elevation is negative
+        depths = elev - da
+        depths = depths.where(depths >= 0)
+        # compute area and volume
+        area = depths.notnull().sum() * pixel_area
+        volume = depths.sum() * pixel_area
+        eac.append(
+            [
+                elev,
+                area.to_dataarray().values[0],
+                volume.to_dataarray().values[0],
+            ]
+        )
+
+        # if plot_areas:
+        #    da.plot(aspect=1, size=8)
+        #    #    plt.title("Lake at %s Elevation" % elev)
+        #    plt.savefig("lake_at_%s.png" % elev)
+        #    plt.close()
+
+    eac = np.array(eac)
+    if plot_curve:
+        plot_eac_curve(eac)
+
+    fmt = "%1.2f, %1.4f, %1.4f"
+    np.savetxt(
+        output_file,
+        eac,
+        header="Elevation, Area, Capacity",
+        delimiter=",",
+        fmt=fmt,
+    )
+    print(f"EAC curve saved to {output_file}")
+
+
+def plot_eac_curve(eac):
+    fig, ax1 = plt.subplots()
+    ax1.plot(eac[:, 1], eac[:, 0], "b")
+    ax1.set_ylabel("Elevation")
+    # Make the y-axis label, ticks and tick labels match the line color.
+    ax1.set_xlabel("Area", color="b")
+    ax1.tick_params("x", colors="b")
+
+    ax2 = ax1.twiny()
+    ax2.plot(eac[:, 2], eac[:, 0], "r")
+    ax2.set_xlabel("Capacity", color="r")
+    ax2.tick_params("x", colors="r")
+    ax2.set_xlim(ax2.get_xlim()[::-1])
+
+    fig.tight_layout()
+    plt.savefig("elevation_area_capacity.png")
 
 
 def points_to_csv(gdf: gpd.GeoDataFrame, output_file: str):
