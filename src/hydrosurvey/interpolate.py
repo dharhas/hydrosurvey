@@ -152,10 +152,23 @@ def aeidw(config: dict):
     )
 
     # add lake boundary elevations to survey_points
-    xy = dense_boundary.iloc[0]["geometry"].exterior.coords.xy
+    boundary_x = []
+    boundary_y = []
+    x, y = dense_boundary.iloc[0]["geometry"].exterior.coords.xy
+    boundary_x.append(x)
+    boundary_y.append(y)
+    for interior in dense_boundary.iloc[0]["geometry"].interiors:
+        x, y = interior.coords.xy
+        boundary_x.append(x)
+        boundary_y.append(y)
+
     boundary_points = gpd.GeoDataFrame(
         gpd.GeoSeries(
-            gpd.points_from_xy(x=xy[0], y=xy[1]), crs=boundary.crs, name="geometry"
+            gpd.points_from_xy(
+                x=np.concatenate(boundary_x), y=np.concatenate(boundary_y)
+            ),
+            crs=boundary.crs,
+            name="geometry",
         )
     )
     boundary_points["surface_elevation"] = boundary.iloc[0]["elevation"]
