@@ -79,10 +79,9 @@ def read_lake_data(config: dict):
     )[["geometry"]]
 
     polygons = (
-        gpd.read_file(config["interpolation_polygons"]["filepath"])
-        .set_index(config["interpolation_polygons"]["polygon_id_column"])
-        .rename(
+        gpd.read_file(config["interpolation_polygons"]["filepath"]).rename(
             columns={
+                config["interpolation_polygons"]["polygon_id_column"]: "id",
                 config["interpolation_polygons"]["grid_spacing_column"]: "gridspace",
                 config["interpolation_polygons"]["priority_column"]: "priority",
                 config["interpolation_polygons"][
@@ -93,7 +92,7 @@ def read_lake_data(config: dict):
                 ]: "params",
             }
         )
-    )[["priority", "gridspace", "method", "params", "geometry"]]
+    )[["id", "priority", "gridspace", "method", "params", "geometry"]].set_index("id")
 
     # Read the survey points CSV file
     columns = {
@@ -203,6 +202,9 @@ def aeidw(config: dict):
             )
 
             target_idx = target_points["id"] == idx
+            if target_idx.empty:
+                print(f"Polygon id {idx} not found in target_points")
+                continue
 
             # transform the survey_points and target points to SN coordinates
             sn_transform = Coord_SN(centerline)
