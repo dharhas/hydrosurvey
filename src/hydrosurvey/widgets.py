@@ -100,7 +100,8 @@ class ColumnMapper(pn.viewable.Viewer):
                 if file_path.suffix == ".csv":
                     columns = pd.read_csv(file_path, nrows=0).columns.tolist()
                 elif file_path.suffix == ".shp":
-                    columns = gpd.read_file(file_path, rows=0).columns.tolist()
+                    self.gdf = gpd.read_file(file_path, rows=0)
+                    columns = self.gdf.columns.tolist()
             columns.append(None)
             for column in self.mapping_widgets:
                 self.mapping_widgets[column].options = {k: k for k in columns}

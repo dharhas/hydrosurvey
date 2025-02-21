@@ -1,7 +1,21 @@
 import panel as pn
 from widgets import ColumnMapper, FileSelectorModal
 
+pn.extension("terminal")
 # pn.config.theme = "dark"
+
+
+def run(event):
+
+    term.clear()
+    term.subprocess.run(
+        "hstools",
+        "interpolate-lake",
+        "/Users/dharhas/data/bianca_20241118/RedBluff_config1.toml",
+        # shell=True,
+        # stdout=term,
+    )
+
 
 lake = pn.widgets.TextInput(name="Lake", placeholder="Enter Lake Name")
 year = pn.widgets.IntInput(
@@ -15,6 +29,7 @@ boundary_file = ColumnMapper(
     FileSelectorParams={"directory": "~/", "file_pattern": "*.shp"},
 )
 boundary_max_segment_length = pn.widgets.IntInput(name="Max Segment Length", value=10)
+boundary_crs = pn.widgets.TextInput(name="CRS", disabled=True)
 
 # survey points
 survey_points_file = ColumnMapper(
@@ -54,61 +69,79 @@ template = pn.template.MaterialTemplate(
     title="HydroSurvey Tools (HSTools)",
 )
 
+term = pn.widgets.Terminal("HSTools Execution \n\n")
+save_and_run = pn.widgets.Button(name="Save and Run", button_type="primary")
 
-layout = pn.Column(
-    pn.Card(lake, year, title="Survey Information"),
-    pn.Card(
-        boundary_file,
-        boundary_max_segment_length,
-        title="Lake Boundary Information",
-    ),
-    pn.Card(survey_points_file, title="Survey Points Information"),
-    pn.Card(
-        interpolation_centerlines_file,
-        centerline_max_segment_length,
-        title="Interpolation Centerlines Information",
-    ),
-    pn.Card(
-        interpolation_polygons_file,
-        buffer,
-        nearest_neighbors,
-        title="Interpolation Polygons Information",
-    ),
-    pn.Card(
-        output_file,
-        output_file_name,
-    ),
+save_and_run.on_click(
+    run
+)  # lambda event: term.subprocess.run("hstools", "interpolate-lake", "config.toml"))
+kill = pn.widgets.Button(name="Kill Python", button_type="danger")
+kill.on_click(lambda x: term.subprocess.kill())
+
+tn = pn.Column(
+    pn.Row(save_and_run, kill, term.subprocess.param.running),
+    term,
+    sizing_mode="stretch_both",
+    min_height=500,
 )
-# .servable()
 
-template.main.append(layout)
-template.servable()
-# Append a layout to the main area, to demonstrate the list-like API
-# template.main.append(
-#     pn.Column(
-#         pn.Card(lake, year, title="Survey Information"),
-#         pn.Card(
-#             boundary_file,
-#             boundary_max_segment_length,
-#             title="Lake Boundary Information",
-#         ),
-#         pn.Card(survey_points_file, title="Survey Points Information"),
-#         pn.Card(
-#             interpolation_centerlines_file,
-#             centerline_max_segment_length,
-#             title="Interpolation Centerlines Information",
-#         ),
-#         pn.Card(
-#             interpolation_polygons_file,
-#             buffer,
-#             nearest_neighbors,
-#             title="Interpolation Polygons Information",
-#         ),
-#         pn.Card(
-#             output_file,
-#             output_file_name,
-#         ),
-#     )
-# )
+# add button to load config from toml file
+load_config = FileSelectorModal(
+    name="Load Existing Configuration (*.toml)",
+    FileSelectorParams={"directory": "~/", "file_pattern": "*.toml"},
+)
 
+# create config file
+create_config = FileSelectorModal(
+    name="Create New Configuration (*.toml)",
+    FileSelectorParams={"directory": "~/", "file_pattern": ""},
+)
+config_file_name = pn.widgets.TextInput(name="Config File Name", value="config.toml")
+
+layout = pn.Row(
+    pn.Column(
+        pn.Card(
+            pn.Tabs(
+                pn.Column(
+                    load_config,
+                    name="Load Existing Configuration",
+                ),
+                pn.Column(
+                    create_config,
+                    config_file_name,
+                    name="Create New Configuration",
+                ),
+            ),
+            title="Configuration File",
+        ),
+        pn.Card(lake, year, title="Survey Information"),
+        pn.Card(
+            boundary_file,
+            boundary_max_segment_length,
+            title="Lake Boundary Information",
+        ),
+        pn.Card(survey_points_file, title="Survey Points Information"),
+        pn.Card(
+            interpolation_centerlines_file,
+            centerline_max_segment_length,
+            title="Interpolation Centerlines Information",
+        ),
+        pn.Card(
+            interpolation_polygons_file,
+            buffer,
+            nearest_neighbors,
+            title="Interpolation Polygons Information",
+        ),
+        pn.Card(
+            output_file,
+            output_file_name,
+            title="Output Information",
+        ),
+    ),
+    tn,
+)
+
+layout.servable()
+
+# template.main.append(layout)
 # template.servable()
