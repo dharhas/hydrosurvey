@@ -11,24 +11,27 @@ pn.extension("modal")
 
 
 class FileSelectorModal(Viewer):
-    def __init__(self, FileSelectorParams={}, **params):
+    def __init__(self, FileSelectorParams={}, name="Selected File", **params):
 
         super().__init__(**params)
 
         # Create the FileSelector widget
         self.file_selector = pn.widgets.FileSelector(
-            name="Select a File",
             **FileSelectorParams,
         )
 
         # Create buttons
-        self.open_modal_button = pn.widgets.Button(
-            name="Select File", button_type="primary"
+        # self.open_modal_button = pn.widgets.Button(name="Select", button_type="primary")
+        self.open_modal_button = pn.widgets.ButtonIcon(
+            icon="folder-open",
+            size="2em",  # description="choose file/folder"
         )
-        self.close_modal_button = pn.widgets.Button(name="Close", button_type="primary")
+        self.close_modal_button = pn.widgets.Button(
+            name="Close"
+        )  # , button_type="primary")
 
         # Create a TextInput widget to display the selected file
-        self.selected_file = pn.widgets.TextInput(disabled=True)
+        self.selected_file = pn.widgets.TextInput(name=name, disabled=True)
 
         # Create the modal content
         self.modal_content = pn.Column(
@@ -42,7 +45,6 @@ class FileSelectorModal(Viewer):
 
         # Create the layout
         self.layout = pn.Row(
-            f"**{self.name}:**",
             self.selected_file,
             self.open_modal_button,
         )
@@ -70,14 +72,16 @@ class FileSelectorModal(Viewer):
 
 
 class ColumnMapper(pn.viewable.Viewer):
-    def __init__(self, data_fields, FileSelectorParams={}, **params):
+    def __init__(
+        self, data_fields, FileSelectorParams={}, name="Selected File", **params
+    ):
         super().__init__(**params)
 
         self.data_fields = data_fields
 
         # Create the FileSelectorModal widget
         self.input_file = FileSelectorModal(
-            name="Select File", FileSelectorParams=FileSelectorParams
+            name=name, FileSelectorParams=FileSelectorParams
         )
 
         # Create a dictionary to hold the Select widgets for mapping

@@ -5,7 +5,7 @@ import panel as pn
 import tomli_w
 from widgets import ColumnMapper, CommandRunner, FileSelectorModal
 
-pn.extension("modal", "terminal", design="material")
+pn.extension("modal", "terminal")
 
 lake = pn.widgets.TextInput(name="Lake", placeholder="Enter Lake Name")
 year = pn.widgets.IntInput(
@@ -55,14 +55,6 @@ output_file_dir = FileSelectorModal(
     FileSelectorParams={"directory": "~/hs-works/data/", "file_pattern": ""},
 )
 output_file_name = pn.widgets.TextInput(name="Output File Name", value="output")
-
-
-# Instantiate the template with widgets displayed in the sidebar
-template = pn.template.MaterialTemplate(
-    title="HydroSurvey Tools (HSTools)",
-    # theme="dark",
-)
-
 
 terminal = CommandRunner()
 cli_command = pn.widgets.TextInput(
@@ -252,17 +244,20 @@ def apply_config(event):
 
 
 load_config = FileSelectorModal(
-    name="Select Config (*.toml)",
+    name="Existing Config File (*.toml)",
     FileSelectorParams={"directory": "~/", "file_pattern": "*.toml"},
 )
 bound_load_config = pn.bind(apply_config, load_config.selected_file)
 
 # create config file
 create_config_dir = FileSelectorModal(
-    name="Choose Folder",
+    name="Config File Directory",
     FileSelectorParams={"directory": "~/", "file_pattern": ""},
 )
-create_config_file_name = pn.widgets.TextInput(name="File Name", value="config")
+create_config_file_name = pn.widgets.TextInput(
+    name="New Config File Name (*.toml)", value="config"
+)
+
 
 config_type = pn.Tabs(
     pn.Column(
@@ -278,35 +273,37 @@ config_type = pn.Tabs(
 )
 
 layout = pn.Row(
+    pn.Spacer(width=50),
     pn.Column(
-        "## Config File",
+        # "## Config File",
         config_type,
         pn.layout.Divider(),
-        "## Survey Information",
+        # "## Survey Information",
         lake,
         year,
         pn.layout.Divider(),
-        "## Lake Boundary Information",
+        # "## Lake Boundary Information",
         boundary_file,
         boundary_max_segment_length,
         pn.layout.Divider(),
-        "## Survey Points Information",
+        # "## Survey Points Information",
         survey_points_file,
         survey_points_crs,
         pn.layout.Divider(),
-        "## Interpolation Centerlines Information",
+        # "## Interpolation Centerlines Information",
         interpolation_centerlines_file,
         centerline_max_segment_length,
         pn.layout.Divider(),
-        "## Interpolation Polygons Information",
+        # "## Interpolation Polygons Information",
         interpolation_polygons_file,
         buffer,
         nearest_neighbors,
         pn.layout.Divider(),
-        "## Output Information",
+        # "## Output Information",
         output_file_dir,
         output_file_name,
     ),
+    pn.Spacer(width=100),
     pn.Column(
         "## Interpolate Lake",
         pn.layout.Divider(),
@@ -315,5 +312,57 @@ layout = pn.Row(
     ),
 )
 
-template.main.append(layout)
+# Define the main content
+main_content = pn.Column()
+main_content.append(layout)
+
+
+# Define a function to update the main content
+def update_content(event):
+    if event.obj.name == "Lake Interpolation":
+        main_content[0] = layout
+    else:
+        main_content[0] = pn.pane.Markdown(f"# {event.obj.name} is not available")
+
+
+# Create the sidebar buttons
+menu_lake = pn.widgets.Button(name="Lake Interpolation")
+menu_eac = pn.widgets.Button(name="Elevation Area Capacity Curve")
+
+# Attach the update function
+menu_lake.on_click(update_content)
+menu_eac.on_click(update_content)
+
+# Build the sidebar
+sidebar = pn.Column(
+    "## Application Menu",
+    # pn.layout.Divider(),
+    menu_lake,
+    menu_eac,
+    width=25,
+)
+
+# Build the template
+template = pn.template.MaterialTemplate(
+    title="HydroSurvey Tools (HSTools)",
+    sidebar=sidebar,
+    main=[main_content],
+)
+
+
+# template = pn.template.MaterialTemplate(
+#     title="HydroSurvey Tools (HSTools)",
+#     main=pn.Tabs(
+#         pn.Column(
+#             layout,
+#             name="# Interpolate Lake",
+#         ),
+#         pn.Column(
+#             pn.pane.Markdown("## Elevation Area Capacity Curv Not Available"),
+#             name="# Elevation Area Capacity Curve",
+#         ),
+#         tabs_location="left",
+#     ),
+# )
+
 template.servable()
