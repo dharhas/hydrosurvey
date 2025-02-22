@@ -63,8 +63,6 @@ cli_command = pn.widgets.TextInput(
     disabled=True,
 )
 
-command = ["hstools", "interpolate-lake", "/Users/dharhas/hs-work/data/mcalester.toml"]
-
 
 def on_run_button_clicked(event):
     config = {}
@@ -170,7 +168,10 @@ def on_run_button_clicked(event):
     terminal.run_command(command)
 
 
-save_and_run = pn.widgets.Button(name="Save and Run", button_type="primary")
+save_and_run = pn.widgets.Button(
+    name="Save Config and Run",
+)
+
 save_and_run.on_click(on_run_button_clicked)
 
 
@@ -305,9 +306,9 @@ layout = pn.Row(
     ),
     pn.Spacer(width=100),
     pn.Column(
-        "## Interpolate Lake",
-        pn.layout.Divider(),
+        # "## Interpolate Lake",
         save_and_run,
+        cli_command,
         terminal,
     ),
 )

@@ -24,11 +24,9 @@ class FileSelectorModal(Viewer):
         # self.open_modal_button = pn.widgets.Button(name="Select", button_type="primary")
         self.open_modal_button = pn.widgets.ButtonIcon(
             icon="folder-open",
-            size="2em",  # description="choose file/folder"
+            size="2em",
         )
-        self.close_modal_button = pn.widgets.Button(
-            name="Close"
-        )  # , button_type="primary")
+        self.close_modal_button = pn.widgets.Button(name="Close", align="end")
 
         # Create a TextInput widget to display the selected file
         self.selected_file = pn.widgets.TextInput(name=name, disabled=True)
