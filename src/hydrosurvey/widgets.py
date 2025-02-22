@@ -78,7 +78,12 @@ class FileSelectorModal(Viewer):
 
 class ColumnMapper(pn.viewable.Viewer):
     def __init__(
-        self, data_fields, FileSelectorParams={}, name="Selected File", **params
+        self,
+        data_fields,
+        FileSelectorParams={},
+        name="Selected File",
+        default_file="",
+        **params,
     ):
         super().__init__(**params)
 
@@ -86,7 +91,9 @@ class ColumnMapper(pn.viewable.Viewer):
 
         # Create the FileSelectorModal widget
         self.input_file = FileSelectorModal(
-            name=name, FileSelectorParams=FileSelectorParams
+            name=name,
+            FileSelectorParams=FileSelectorParams,
+            default_file=default_file,
         )
 
         # Create a dictionary to hold the Select widgets for mapping
@@ -106,7 +113,7 @@ class ColumnMapper(pn.viewable.Viewer):
         self.create_mapping_widgets()
 
         file_path = self.input_file.selected_file.value
-        if file_path:
+        if file_path and Path(file_path).is_file():
             file_path = Path(file_path)
             if file_path.exists():
                 if file_path.suffix == ".csv":
@@ -175,10 +182,18 @@ class CommandRunner(Viewer):
 
 class FileFolderPicker(Viewer):
     def __init__(
-        self, name=None, folders=[], file_pattern=None, only_folders=False, **params
+        self,
+        name=None,
+        folders=[],
+        file_pattern=None,
+        only_folders=False,
+        data_fields=[],
+        **params,
     ):
 
         self.field_name = name
+        self.data_fields = data_fields
+
         if only_folders:
             self.file_pattern = ""
             if self.field_name is None:
@@ -209,14 +224,26 @@ class FileFolderPicker(Viewer):
 
     def update_root_folder(self, event, default_file=""):
         self.widgets.clear()
-        self.widgets["folder_picker"] = FileSelectorModal(
-            name=self.field_name,
-            FileSelectorParams={
-                "directory": self.drive_picker.value,
-                "file_pattern": self.file_pattern,
-            },
-            default_file=str(self.drive_picker.value),
-        )
+
+        if len(self.data_fields) > 0:
+            self.widgets["folder_picker"] = ColumnMapper(
+                data_fields=self.data_fields,
+                name=self.field_name,
+                FileSelectorParams={
+                    "directory": self.drive_picker.value,
+                    "file_pattern": self.file_pattern,
+                },
+                default_file=str(self.drive_picker.value),
+            )
+        else:
+            self.widgets["folder_picker"] = FileSelectorModal(
+                name=self.field_name,
+                FileSelectorParams={
+                    "directory": self.drive_picker.value,
+                    "file_pattern": self.file_pattern,
+                },
+                default_file=str(self.drive_picker.value),
+            )
         self.column_mapper.clear()
         self.column_mapper.extend(self.widgets.values())
 
