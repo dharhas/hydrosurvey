@@ -184,6 +184,9 @@ save_and_run.on_click(on_run_button_clicked)
 
 # load existing config from toml file
 def apply_config(event):
+    if not load_config.selected_file.value:
+        return
+
     with open(load_config.selected_file.value, "rb") as f:
         config = tomllib.load(f)
 
@@ -252,10 +255,7 @@ load_config = FileSelectorModal(
     name="Select Config (*.toml)",
     FileSelectorParams={"directory": "~/", "file_pattern": "*.toml"},
 )
-
-# add button to load config file
-load_config_button = pn.widgets.Button(name="Load Config", button_type="primary")
-load_config_button.on_click(apply_config)
+bound_load_config = pn.bind(apply_config, load_config.selected_file)
 
 # create config file
 create_config_dir = FileSelectorModal(
@@ -267,7 +267,7 @@ create_config_file_name = pn.widgets.TextInput(name="File Name", value="config")
 config_type = pn.Tabs(
     pn.Column(
         load_config,
-        load_config_button,
+        bound_load_config,
         name="Load Existing Configuration",
     ),
     pn.Column(
