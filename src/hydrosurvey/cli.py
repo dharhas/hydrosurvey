@@ -18,7 +18,7 @@ from .interpolate import aeidw
 
 app = typer.Typer(
     help="Hydrosurvey CLI",
-    add_completion=False,
+    add_completion=True,
     no_args_is_help=True,
     rich_markup_mode="rich",
     pretty_exceptions_show_locals=False,
