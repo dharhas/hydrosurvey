@@ -350,20 +350,4 @@ template = pn.template.MaterialTemplate(
     main=[main_content],
 )
 
-
-# template = pn.template.MaterialTemplate(
-#     title="HydroSurvey Tools (HSTools)",
-#     main=pn.Tabs(
-#         pn.Column(
-#             layout,
-#             name="# Interpolate Lake",
-#         ),
-#         pn.Column(
-#             pn.pane.Markdown("## Elevation Area Capacity Curv Not Available"),
-#             name="# Elevation Area Capacity Curve",
-#         ),
-#         tabs_location="left",
-#     ),
-# )
-
 template.servable()
