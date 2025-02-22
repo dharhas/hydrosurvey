@@ -1,3 +1,4 @@
+import tomllib
 from pathlib import Path
 
 import panel as pn
@@ -11,8 +12,8 @@ year = pn.widgets.IntInput(
     name="Survey Year", value=2025, placeholder="Enter Survey Year"
 )
 
-# input_dir = "/Users/dharhas/hs-work/data/Hydrotools_McAlester/Inputs"
-input_dir = "~/hs-work/data/Hydrotools_McAlester/Inputs"
+
+input_dir = "~/"  # "~/hs-work/data/Hydrotools_McAlester/Inputs"
 # boundary
 boundary_file = ColumnMapper(
     name="Lake Boundary ShapeFile",
@@ -147,11 +148,14 @@ def on_run_button_clicked(event):
     )
     config["output"]["filepath"] = str(output_filepath)
 
-    config_filepath = (
-        Path(create_config_dir.selected_file.value)
-        .joinpath(create_config_file_name.value)
-        .with_suffix(".toml")
-    )
+    if config_type.active == 0:
+        config_filepath = Path(load_config.selected_file.value)
+    else:
+        config_filepath = (
+            Path(create_config_dir.selected_file.value)
+            .joinpath(create_config_file_name.value)
+            .with_suffix(".toml")
+        )
 
     # toml can't handle None values
     def replace_none(d):
@@ -177,11 +181,81 @@ def on_run_button_clicked(event):
 save_and_run = pn.widgets.Button(name="Save and Run", button_type="primary")
 save_and_run.on_click(on_run_button_clicked)
 
-# add button to load config from toml file
+
+# load existing config from toml file
+def apply_config(event):
+    with open(load_config.selected_file.value, "rb") as f:
+        config = tomllib.load(f)
+
+    lake.value = config["lake"]["name"]
+    year.value = config["lake"]["survey_year"]
+
+    boundary_file.input_file.selected_file.value = config["boundary"]["filepath"]
+    boundary_file.mapping_widgets["elevation"].value = config["boundary"][
+        "elevation_column"
+    ]
+    boundary_max_segment_length.value = config["boundary"]["max_segment_length"]
+
+    survey_points_file.input_file.selected_file.value = config["survey_points"][
+        "filepath"
+    ]
+    survey_points_file.mapping_widgets["x_coord"].value = config["survey_points"][
+        "x_coord_column"
+    ]
+    survey_points_file.mapping_widgets["y_coord"].value = config["survey_points"][
+        "y_coord_column"
+    ]
+    survey_points_file.mapping_widgets["surface_elevation"].value = config[
+        "survey_points"
+    ]["surface_elevation_column"]
+    survey_points_file.mapping_widgets["preimpoundment_elevation"].value = config[
+        "survey_points"
+    ]["preimpoundment_elevation_column"]
+    survey_points_crs.value = config["survey_points"]["crs"]
+
+    interpolation_centerlines_file.input_file.selected_file.value = config[
+        "interpolation_centerlines"
+    ]["filepath"]
+    interpolation_centerlines_file.mapping_widgets["polygon id"].value = config[
+        "interpolation_centerlines"
+    ]["polygon_id_column"]
+    centerline_max_segment_length.value = config["interpolation_centerlines"][
+        "max_segment_length"
+    ]
+
+    interpolation_polygons_file.input_file.selected_file.value = config[
+        "interpolation_polygons"
+    ]["filepath"]
+    interpolation_polygons_file.mapping_widgets["polygon id"].value = config[
+        "interpolation_polygons"
+    ]["polygon_id_column"]
+    interpolation_polygons_file.mapping_widgets["grid spacing"].value = config[
+        "interpolation_polygons"
+    ]["grid_spacing_column"]
+    interpolation_polygons_file.mapping_widgets["priority"].value = config[
+        "interpolation_polygons"
+    ]["priority_column"]
+    interpolation_polygons_file.mapping_widgets["method"].value = config[
+        "interpolation_polygons"
+    ]["interpolation_method_column"]
+    interpolation_polygons_file.mapping_widgets["params"].value = config[
+        "interpolation_polygons"
+    ]["interpolation_params_column"]
+    buffer.value = config["interpolation_polygons"]["buffer"]
+    nearest_neighbors.value = config["interpolation_polygons"]["nearest_neighbors"]
+
+    output_file_dir.selected_file.value = str(Path(config["output"]["filepath"]).parent)
+    output_file_name.value = Path(config["output"]["filepath"]).stem
+
+
 load_config = FileSelectorModal(
     name="Select Config (*.toml)",
     FileSelectorParams={"directory": "~/", "file_pattern": "*.toml"},
 )
+
+# add button to load config file
+load_config_button = pn.widgets.Button(name="Load Config", button_type="primary")
+load_config_button.on_click(apply_config)
 
 # create config file
 create_config_dir = FileSelectorModal(
@@ -190,20 +264,23 @@ create_config_dir = FileSelectorModal(
 )
 create_config_file_name = pn.widgets.TextInput(name="File Name", value="config")
 
+config_type = pn.Tabs(
+    pn.Column(
+        load_config,
+        load_config_button,
+        name="Load Existing Configuration",
+    ),
+    pn.Column(
+        create_config_dir,
+        create_config_file_name,
+        name="Create New Configuration",
+    ),
+)
+
 layout = pn.Row(
     pn.Column(
         "## Config File",
-        pn.Tabs(
-            pn.Column(
-                load_config,
-                name="Load Existing Configuration",
-            ),
-            pn.Column(
-                create_config_dir,
-                create_config_file_name,
-                name="Create New Configuration",
-            ),
-        ),
+        config_type,
         pn.layout.Divider(),
         "## Survey Information",
         lake,
@@ -237,54 +314,6 @@ layout = pn.Row(
         terminal,
     ),
 )
-
-
-# layout = pn.Row(
-#     pn.Column(
-#         pn.Card(
-#             pn.Tabs(
-#                 pn.Column(
-#                     load_config,
-#                     name="Load Existing Configuration",
-#                 ),
-#                 pn.Column(
-#                     create_config,
-#                     config_file_name,
-#                     name="Create New Configuration",
-#                 ),
-#             ),
-#             title="Configuration File",
-#         ),
-#         pn.Card(lake, year, title="Survey Information"),
-#         pn.Card(
-#             boundary_file,
-#             boundary_max_segment_length,
-#             title="Lake Boundary Information",
-#         ),
-#         pn.Card(
-#             survey_points_file, survey_points_crs, title="Survey Points Information"
-#         ),
-#         pn.Card(
-#             interpolation_centerlines_file,
-#             centerline_max_segment_length,
-#             title="Interpolation Centerlines Information",
-#         ),
-#         pn.Card(
-#             interpolation_polygons_file,
-#             buffer,
-#             nearest_neighbors,
-#             title="Interpolation Polygons Information",
-#         ),
-#         pn.Card(
-#             output_file,
-#             output_file_name,
-#             title="Output Information",
-#         ),
-#     ),
-#     tn,
-# )
-
-# layout.servable()
 
 template.main.append(layout)
 template.servable()

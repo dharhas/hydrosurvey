@@ -83,18 +83,19 @@ class ColumnMapper(pn.viewable.Viewer):
         # Create a dictionary to hold the Select widgets for mapping
         self.mapping_widgets = {}
 
-        self.input_file.close_modal_button.on_click(self.update_column_select)
+        # self.input_file.close_modal_button.on_click(self.update_column_select)
+
+        bound_function = pn.bind(
+            self.update_column_select, self.input_file.selected_file
+        )
 
         # Create the layout
         self.column_mapper = pn.Column()
-        self.layout = pn.Column(
-            self.input_file,
-            self.column_mapper,
-        )
-
-        self.create_mapping_widgets()
+        self.layout = pn.Column(self.input_file, self.column_mapper, bound_function)
 
     def update_column_select(self, event):
+        self.create_mapping_widgets()
+
         file_path = self.input_file.selected_file.value
         if file_path:
             file_path = Path(file_path)
