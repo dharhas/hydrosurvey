@@ -1,17 +1,20 @@
 import subprocess
 import threading
-from pathlib import Path
+from pathlib import Path, WindowsPath
 
 import geopandas as gpd
 import pandas as pd
 import panel as pn
+import psutil
 from panel.viewable import Viewer
 
 pn.extension("modal")
 
 
 class FileSelectorModal(Viewer):
-    def __init__(self, FileSelectorParams={}, name="Selected File", **params):
+    def __init__(
+        self, FileSelectorParams={}, name="Selected File", default_file="", **params
+    ):
 
         super().__init__(**params)
 
@@ -29,7 +32,11 @@ class FileSelectorModal(Viewer):
         self.close_modal_button = pn.widgets.Button(name="Close", align="end")
 
         # Create a TextInput widget to display the selected file
-        self.selected_file = pn.widgets.TextInput(name=name, disabled=True)
+        self.selected_file = pn.widgets.TextInput(
+            name=name,
+            disabled=True,
+            value=default_file,
+        )
 
         # Create the modal content
         self.modal_content = pn.Column(
@@ -164,3 +171,55 @@ class CommandRunner(Viewer):
 
     def __panel__(self):
         return self.terminal
+
+
+class FileFolderPicker(Viewer):
+    def __init__(
+        self, name=None, folders=[], file_pattern=None, only_folders=False, **params
+    ):
+
+        if only_folders:
+            self.file_pattern = ""
+            if not name:
+                name = "Folder"
+        else:
+            self.file_pattern = file_pattern or "*"
+            if not name:
+                name = f"File ({self.file_pattern})"
+
+        self.field_name = name
+        partitions = [
+            Path(p.mountpoint)
+            for p in psutil.disk_partitions()
+            if "/System/" not in p.mountpoint
+        ]
+        partitions.insert(0, Path.home())
+        partitions = folders + partitions  # Add custom folders to the list
+        self.drive_picker = pn.widgets.Select(
+            name="Drive",
+            options=partitions,
+            value=partitions[0],
+        )
+        self.widgets = {}
+        self.column_mapper = pn.Column()
+        bound_function = pn.bind(self.update_root_folder, self.drive_picker)
+
+        self.update_root_folder(None)
+        self.layout = pn.Column(self.drive_picker, self.column_mapper, bound_function)
+
+    def update_root_folder(self, event, default_file=""):
+        self.widgets.clear()
+        self.widgets["folder_picker"] = FileSelectorModal(
+            name=self.field_name,
+            FileSelectorParams={
+                "directory": self.drive_picker.value,
+                "file_pattern": file_pattern,
+            },
+            default_file=str(self.drive_picker.value),
+            name="Folder",
+        )
+        self.column_mapper.clear()
+        self.column_mapper.extend(self.widgets.values())
+
+    def __panel__(self):
+        return self.layout
