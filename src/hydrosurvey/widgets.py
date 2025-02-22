@@ -178,16 +178,16 @@ class FileFolderPicker(Viewer):
         self, name=None, folders=[], file_pattern=None, only_folders=False, **params
     ):
 
+        self.field_name = name
         if only_folders:
             self.file_pattern = ""
-            if not name:
-                name = "Folder"
+            if self.field_name is None:
+                self.field_name = "Folder"
         else:
             self.file_pattern = file_pattern or "*"
-            if not name:
+            if self.field_name is None:
                 name = f"File ({self.file_pattern})"
 
-        self.field_name = name
         partitions = [
             Path(p.mountpoint)
             for p in psutil.disk_partitions()
@@ -213,10 +213,9 @@ class FileFolderPicker(Viewer):
             name=self.field_name,
             FileSelectorParams={
                 "directory": self.drive_picker.value,
-                "file_pattern": file_pattern,
+                "file_pattern": self.file_pattern,
             },
             default_file=str(self.drive_picker.value),
-            name="Folder",
         )
         self.column_mapper.clear()
         self.column_mapper.extend(self.widgets.values())
