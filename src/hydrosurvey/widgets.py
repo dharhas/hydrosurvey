@@ -1,3 +1,5 @@
+import subprocess
+import threading
 from pathlib import Path
 
 import geopandas as gpd
@@ -120,23 +122,42 @@ class ColumnMapper(pn.viewable.Viewer):
         return self.layout
 
 
-# Define the predefined list for mapping
-predefined_list = ["Option 1", "Option 2", "Option 3"]
+class CommandRunner(Viewer):
+    """
+    Manages running a command in a subprocess and displaying the output
+    in a Panel Terminal widget.  Prevents concurrent runs.
+    """
 
+    def __init__(self, **params):
+        self.terminal = pn.widgets.Terminal(height=300)
+        self.process = None  # Store the subprocess
+        super().__init__(**params)
 
-# Create an instance of the compound widget
-# file_selector_modal = FileSelectorModal(
-#    name="File", FileSelectorParams={"directory": "~/", "file_pattern": "*.csv"}
-# )
+    def run_command(self, command):
+        """
+        Runs the given command in a subprocess, ensuring only one
+        process runs at a time.
+        """
+        if self.process and self.process.poll() is None:
+            self.terminal.write(
+                "A command is already running. Please wait or kill it.\n"
+            )
+            return
 
-# Serve the app
-# file_selector_modal.servable()
+        def process_output():
+            self.terminal.clear()
+            self.process = subprocess.Popen(
+                command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+            )
 
-# Create an instance of the compound widget
-# column_mapper = ColumnMapper(
-#    data_fields=predefined_list,
-#    FileSelectorParams={"directory": "~/", "file_pattern": "*.shp"},
-# )
+            for line in iter(self.process.stdout.readline, ""):
+                self.terminal.write(line)
 
-# Serve the app
-# column_mapper.servable()
+            self.process.stdout.close()
+            self.process.wait()
+            self.terminal.write("Command finished.\n")
+
+        threading.Thread(target=process_output, daemon=True).start()
+
+    def __panel__(self):
+        return self.terminal

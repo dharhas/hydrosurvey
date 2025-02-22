@@ -1,32 +1,23 @@
+from pathlib import Path
+
 import panel as pn
-from widgets import ColumnMapper, FileSelectorModal
+import tomli_w
+from widgets import ColumnMapper, CommandRunner, FileSelectorModal
 
-pn.extension("terminal")
-# pn.config.theme = "dark"
-
-
-def run(event):
-
-    term.clear()
-    term.subprocess.run(
-        "hstools",
-        "interpolate-lake",
-        "/Users/dharhas/data/bianca_20241118/RedBluff_config1.toml",
-        # shell=True,
-        # stdout=term,
-    )
-
+pn.extension("modal", "terminal", design="material")
 
 lake = pn.widgets.TextInput(name="Lake", placeholder="Enter Lake Name")
 year = pn.widgets.IntInput(
     name="Survey Year", value=2025, placeholder="Enter Survey Year"
 )
 
+# input_dir = "/Users/dharhas/hs-work/data/Hydrotools_McAlester/Inputs"
+input_dir = "~/hs-work/data/Hydrotools_McAlester/Inputs"
 # boundary
 boundary_file = ColumnMapper(
     name="Lake Boundary ShapeFile",
     data_fields=["elevation"],
-    FileSelectorParams={"directory": "~/", "file_pattern": "*.shp"},
+    FileSelectorParams={"directory": input_dir, "file_pattern": "*.shp"},
 )
 boundary_max_segment_length = pn.widgets.IntInput(name="Max Segment Length", value=10)
 boundary_crs = pn.widgets.TextInput(name="CRS", disabled=True)
@@ -35,14 +26,15 @@ boundary_crs = pn.widgets.TextInput(name="CRS", disabled=True)
 survey_points_file = ColumnMapper(
     name="Survey Points CSV",
     data_fields=["x_coord", "y_coord", "surface_elevation", "preimpoundment_elevation"],
-    FileSelectorParams={"directory": "~/", "file_pattern": "*.csv"},
+    FileSelectorParams={"directory": input_dir, "file_pattern": "*.csv"},
 )
+survey_points_crs = pn.widgets.TextInput(name="Survey Points CRS")
 
 # interpolation centerlines
 interpolation_centerlines_file = ColumnMapper(
     name="Interpolation Centerlines ShapeFile",
     data_fields=["polygon id"],
-    FileSelectorParams={"directory": "~/", "file_pattern": "*.shp"},
+    FileSelectorParams={"directory": input_dir, "file_pattern": "*.shp"},
 )
 centerline_max_segment_length = pn.widgets.IntInput(name="Max Segment Length", value=10)
 
@@ -51,15 +43,15 @@ centerline_max_segment_length = pn.widgets.IntInput(name="Max Segment Length", v
 interpolation_polygons_file = ColumnMapper(
     name="Interpolation Polygons ShapeFile",
     data_fields=["polygon id", "grid spacing", "priority", "method", "params"],
-    FileSelectorParams={"directory": "~/", "file_pattern": "*.shp"},
+    FileSelectorParams={"directory": input_dir, "file_pattern": "*.shp"},
 )
 buffer = pn.widgets.IntInput(name="Buffer", value=100)
 nearest_neighbors = pn.widgets.IntInput(name="Nearest Neighbors", value=100)
 
 # output directory
-output_file = FileSelectorModal(
+output_file_dir = FileSelectorModal(
     name="Output Directory",
-    FileSelectorParams={"directory": "~/", "file_pattern": ""},
+    FileSelectorParams={"directory": "~/hs-works/data/", "file_pattern": ""},
 )
 output_file_name = pn.widgets.TextInput(name="Output File Name", value="output")
 
@@ -67,81 +59,232 @@ output_file_name = pn.widgets.TextInput(name="Output File Name", value="output")
 # Instantiate the template with widgets displayed in the sidebar
 template = pn.template.MaterialTemplate(
     title="HydroSurvey Tools (HSTools)",
+    # theme="dark",
 )
 
-term = pn.widgets.Terminal("HSTools Execution \n\n")
+
+terminal = CommandRunner()
+cli_command = pn.widgets.TextInput(
+    name="CLI Command",
+    value="hstools interpolate-lake /path/to/config.toml",
+    disabled=True,
+)
+
+command = ["hstools", "interpolate-lake", "/Users/dharhas/hs-work/data/mcalester.toml"]
+
+
+def on_run_button_clicked(event):
+    config = {}
+    config["lake"] = {}
+    config["lake"]["name"] = lake.value
+    config["lake"]["survey_year"] = year.value
+
+    config["boundary"] = {}
+    config["boundary"]["filepath"] = boundary_file.input_file.selected_file.value
+    config["boundary"]["elevation_column"] = boundary_file.mapping_widgets[
+        "elevation"
+    ].value
+    config["boundary"]["max_segment_length"] = boundary_max_segment_length.value
+
+    config["survey_points"] = {}
+    config["survey_points"][
+        "filepath"
+    ] = survey_points_file.input_file.selected_file.value
+    config["survey_points"]["x_coord_column"] = survey_points_file.mapping_widgets[
+        "x_coord"
+    ].value
+    config["survey_points"]["y_coord_column"] = survey_points_file.mapping_widgets[
+        "y_coord"
+    ].value
+    config["survey_points"]["surface_elevation_column"] = (
+        survey_points_file.mapping_widgets["surface_elevation"].value
+    )
+    config["survey_points"]["preimpoundment_elevation_column"] = (
+        survey_points_file.mapping_widgets["preimpoundment_elevation"].value
+    )
+    config["survey_points"]["crs"] = survey_points_crs.value
+    if config["survey_points"]["crs"] == "":
+        config["survey_points"]["crs"] = boundary_crs.value
+
+    config["interpolation_centerlines"] = {}
+    config["interpolation_centerlines"][
+        "filepath"
+    ] = interpolation_centerlines_file.input_file.selected_file.value
+    config["interpolation_centerlines"]["polygon_id_column"] = (
+        interpolation_centerlines_file.mapping_widgets["polygon id"].value
+    )
+    config["interpolation_centerlines"][
+        "max_segment_length"
+    ] = centerline_max_segment_length.value
+
+    config["interpolation_polygons"] = {}
+    config["interpolation_polygons"][
+        "filepath"
+    ] = interpolation_polygons_file.input_file.selected_file.value
+    config["interpolation_polygons"]["polygon_id_column"] = (
+        interpolation_polygons_file.mapping_widgets["polygon id"].value
+    )
+    config["interpolation_polygons"]["grid_spacing_column"] = (
+        interpolation_polygons_file.mapping_widgets["grid spacing"].value
+    )
+    config["interpolation_polygons"]["priority_column"] = (
+        interpolation_polygons_file.mapping_widgets["priority"].value
+    )
+    config["interpolation_polygons"]["interpolation_method_column"] = (
+        interpolation_polygons_file.mapping_widgets["method"].value
+    )
+    config["interpolation_polygons"]["interpolation_params_column"] = (
+        interpolation_polygons_file.mapping_widgets["params"].value
+    )
+    config["interpolation_polygons"]["buffer"] = buffer.value
+    config["interpolation_polygons"]["nearest_neighbors"] = nearest_neighbors.value
+
+    config["output"] = {}
+    output_filepath = (
+        Path(output_file_dir.selected_file.value)
+        .joinpath(output_file_name.value)
+        .with_suffix(".csv")
+    )
+    config["output"]["filepath"] = str(output_filepath)
+
+    config_filepath = (
+        Path(create_config_dir.selected_file.value)
+        .joinpath(create_config_file_name.value)
+        .with_suffix(".toml")
+    )
+
+    # toml can't handle None values
+    def replace_none(d):
+        """Recursively replace None values with an empty string in a nested dictionary."""
+        if isinstance(d, dict):
+            return {k: replace_none(v) for k, v in d.items()}
+        elif isinstance(d, list):
+            return [replace_none(v) for v in d]
+        return "" if d is None else d
+
+    with open(config_filepath, "wb") as f:
+        tomli_w.dump(replace_none(config), f)
+
+    command = [
+        "hstools",
+        "interpolate-lake",
+        str(config_filepath),
+    ]
+    cli_command.value = " ".join(command)
+    terminal.run_command(command)
+
+
 save_and_run = pn.widgets.Button(name="Save and Run", button_type="primary")
-
-save_and_run.on_click(
-    run
-)  # lambda event: term.subprocess.run("hstools", "interpolate-lake", "config.toml"))
-kill = pn.widgets.Button(name="Kill Python", button_type="danger")
-kill.on_click(lambda x: term.subprocess.kill())
-
-tn = pn.Column(
-    pn.Row(save_and_run, kill, term.subprocess.param.running),
-    term,
-    sizing_mode="stretch_both",
-    min_height=500,
-)
+save_and_run.on_click(on_run_button_clicked)
 
 # add button to load config from toml file
 load_config = FileSelectorModal(
-    name="Load Existing Configuration (*.toml)",
+    name="Select Config (*.toml)",
     FileSelectorParams={"directory": "~/", "file_pattern": "*.toml"},
 )
 
 # create config file
-create_config = FileSelectorModal(
-    name="Create New Configuration (*.toml)",
+create_config_dir = FileSelectorModal(
+    name="Choose Folder",
     FileSelectorParams={"directory": "~/", "file_pattern": ""},
 )
-config_file_name = pn.widgets.TextInput(name="Config File Name", value="config.toml")
+create_config_file_name = pn.widgets.TextInput(name="File Name", value="config")
 
 layout = pn.Row(
     pn.Column(
-        pn.Card(
-            pn.Tabs(
-                pn.Column(
-                    load_config,
-                    name="Load Existing Configuration",
-                ),
-                pn.Column(
-                    create_config,
-                    config_file_name,
-                    name="Create New Configuration",
-                ),
+        "## Config File",
+        pn.Tabs(
+            pn.Column(
+                load_config,
+                name="Load Existing Configuration",
             ),
-            title="Configuration File",
+            pn.Column(
+                create_config_dir,
+                create_config_file_name,
+                name="Create New Configuration",
+            ),
         ),
-        pn.Card(lake, year, title="Survey Information"),
-        pn.Card(
-            boundary_file,
-            boundary_max_segment_length,
-            title="Lake Boundary Information",
-        ),
-        pn.Card(survey_points_file, title="Survey Points Information"),
-        pn.Card(
-            interpolation_centerlines_file,
-            centerline_max_segment_length,
-            title="Interpolation Centerlines Information",
-        ),
-        pn.Card(
-            interpolation_polygons_file,
-            buffer,
-            nearest_neighbors,
-            title="Interpolation Polygons Information",
-        ),
-        pn.Card(
-            output_file,
-            output_file_name,
-            title="Output Information",
-        ),
+        pn.layout.Divider(),
+        "## Survey Information",
+        lake,
+        year,
+        pn.layout.Divider(),
+        "## Lake Boundary Information",
+        boundary_file,
+        boundary_max_segment_length,
+        pn.layout.Divider(),
+        "## Survey Points Information",
+        survey_points_file,
+        survey_points_crs,
+        pn.layout.Divider(),
+        "## Interpolation Centerlines Information",
+        interpolation_centerlines_file,
+        centerline_max_segment_length,
+        pn.layout.Divider(),
+        "## Interpolation Polygons Information",
+        interpolation_polygons_file,
+        buffer,
+        nearest_neighbors,
+        pn.layout.Divider(),
+        "## Output Information",
+        output_file_dir,
+        output_file_name,
     ),
-    tn,
+    pn.Column(
+        "## Interpolate Lake",
+        pn.layout.Divider(),
+        save_and_run,
+        terminal,
+    ),
 )
 
-layout.servable()
 
-# template.main.append(layout)
-# template.servable()
+# layout = pn.Row(
+#     pn.Column(
+#         pn.Card(
+#             pn.Tabs(
+#                 pn.Column(
+#                     load_config,
+#                     name="Load Existing Configuration",
+#                 ),
+#                 pn.Column(
+#                     create_config,
+#                     config_file_name,
+#                     name="Create New Configuration",
+#                 ),
+#             ),
+#             title="Configuration File",
+#         ),
+#         pn.Card(lake, year, title="Survey Information"),
+#         pn.Card(
+#             boundary_file,
+#             boundary_max_segment_length,
+#             title="Lake Boundary Information",
+#         ),
+#         pn.Card(
+#             survey_points_file, survey_points_crs, title="Survey Points Information"
+#         ),
+#         pn.Card(
+#             interpolation_centerlines_file,
+#             centerline_max_segment_length,
+#             title="Interpolation Centerlines Information",
+#         ),
+#         pn.Card(
+#             interpolation_polygons_file,
+#             buffer,
+#             nearest_neighbors,
+#             title="Interpolation Polygons Information",
+#         ),
+#         pn.Card(
+#             output_file,
+#             output_file_name,
+#             title="Output Information",
+#         ),
+#     ),
+#     tn,
+# )
+
+# layout.servable()
+
+template.main.append(layout)
+template.servable()
