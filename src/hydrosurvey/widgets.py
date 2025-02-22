@@ -193,15 +193,7 @@ class FileFolderPicker(Viewer):
 
         self.field_name = name
         self.data_fields = data_fields
-
-        if only_folders:
-            self.file_pattern = ""
-            if self.field_name is None:
-                self.field_name = "Folder"
-        else:
-            self.file_pattern = file_pattern or "*"
-            if self.field_name is None:
-                name = f"File ({self.file_pattern})"
+        self.only_folders = only_folders
 
         partitions = [
             Path(p.mountpoint)
@@ -210,6 +202,18 @@ class FileFolderPicker(Viewer):
         ]
         partitions.insert(0, Path.home())
         partitions = folders + partitions  # Add custom folders to the list
+
+        if only_folders:
+            self.file_pattern = ""
+            # self.default_file = partitions[0]
+            if self.field_name is None:
+                self.field_name = "Folder"
+        else:
+            self.file_pattern = file_pattern or "*"
+            # self.default_file = ""
+            if self.field_name is None:
+                name = f"File ({self.file_pattern})"
+
         self.drive_picker = pn.widgets.Select(
             name="Drive",
             options=partitions,
@@ -224,28 +228,56 @@ class FileFolderPicker(Viewer):
 
     def update_root_folder(self, event, default_file=""):
         self.widgets.clear()
+        if self.only_folders:
+            default_file = self.drive_picker.value
+        else:
+            default_file = ""
 
         if len(self.data_fields) > 0:
-            self.widgets["folder_picker"] = ColumnMapper(
+            self.widgets["picker"] = ColumnMapper(
                 data_fields=self.data_fields,
                 name=self.field_name,
                 FileSelectorParams={
                     "directory": self.drive_picker.value,
                     "file_pattern": self.file_pattern,
                 },
-                default_file=str(self.drive_picker.value),
+                default_file=str(default_file),
             )
         else:
-            self.widgets["folder_picker"] = FileSelectorModal(
+            self.widgets["picker"] = FileSelectorModal(
                 name=self.field_name,
                 FileSelectorParams={
                     "directory": self.drive_picker.value,
                     "file_pattern": self.file_pattern,
                 },
-                default_file=str(self.drive_picker.value),
+                default_file=str(default_file),
             )
         self.column_mapper.clear()
         self.column_mapper.extend(self.widgets.values())
+
+    def get_selected(self):
+        path = ""
+        column_mappings = {}
+        picker = self.widgets.get("picker", None)
+        if type(picker) == FileSelectorModal:
+            path = picker.selected_file.value
+
+        if type(picker) == ColumnMapper:
+            path = picker.input_file.selected_file.value
+            for col in picker.data_fields:
+                column_mappings[col] = picker.mapping_widgets[col].value
+        return {"path": path, "column_mappings": column_mappings}
+
+    def set_selected(self, path, column_mappings={}):
+        picker = self.widgets.get("picker", None)
+
+        if type(picker) == FileSelectorModal:
+            picker.selected_file.value = path
+
+        if type(picker) == ColumnMapper:
+            picker.input_file.selected_file.value = path
+            for k, v in column_mappings.items():
+                picker.mapping_widgets[k].value = v
 
     def __panel__(self):
         return self.layout
