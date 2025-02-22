@@ -1,4 +1,5 @@
 import os
+import subprocess
 import tomllib
 from pathlib import Path
 from typing import Optional
@@ -248,6 +249,17 @@ def interpolate_lake(configfile: Optional[Path]):
     # write out the interpolated elevations
     print(f"Writing interpolated elevations to {config['output']['filepath']}")
     points_to_csv(interpolated_points, config["output"]["filepath"])
+
+
+@app.command()
+def gui():
+    """
+    Launch the Hydrosurvey GUI.
+    """
+    print("Launching Hydrosurvey GUI")
+    # this is hacky but works for now
+    p = Path(os.path.abspath(__file__)).parent
+    subprocess.run(["panel", "serve", str(p.joinpath("gui.py")), "--show"])
 
 
 @app.command()
