@@ -13,7 +13,7 @@ year = pn.widgets.IntInput(
 )
 
 
-input_dir = "~/"  # "~/hs-work/data/Hydrotools_McAlester/Inputs"
+input_dir = "~/"
 # boundary
 boundary_file = ColumnMapper(
     name="Lake Boundary ShapeFile",
@@ -52,7 +52,7 @@ nearest_neighbors = pn.widgets.IntInput(name="Nearest Neighbors", value=100)
 # output directory
 output_file_dir = FileSelectorModal(
     name="Output Directory",
-    FileSelectorParams={"directory": "~/hs-works/data/", "file_pattern": ""},
+    FileSelectorParams={"directory": "~/", "file_pattern": ""},
 )
 output_file_name = pn.widgets.TextInput(name="Output File Name", value="output")
 
