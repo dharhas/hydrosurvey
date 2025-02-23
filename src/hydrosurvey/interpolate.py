@@ -98,7 +98,9 @@ def read_lake_data(config: dict):
     columns = {
         config["survey_points"]["x_coord_column"]: "x_coord",
         config["survey_points"]["y_coord_column"]: "y_coord",
-        config["survey_points"]["surface_elevation_column"]: "surface_elevation",
+        config["survey_points"][
+            "current_surface_elevation_column"
+        ]: "current_surface_elevation",
     }
 
     if config["survey_points"].get("preimpoundment_elevation_column"):
@@ -175,7 +177,7 @@ def aeidw(config: dict):
             name="geometry",
         )
     )
-    boundary_points["surface_elevation"] = boundary.iloc[0]["elevation"]
+    boundary_points["current_surface_elevation"] = boundary.iloc[0]["elevation"]
     survey_points = gpd.GeoDataFrame(
         pd.concat(
             [survey_points, boundary_points],
@@ -224,9 +226,9 @@ def aeidw(config: dict):
 
             # interpolate the elevations
             if "preimpoundment_elevation" in source_points_sn.columns:
-                columns = ["surface_elevation", "preimpoundment_elevation"]
+                columns = ["current_surface_elevation", "preimpoundment_elevation"]
             else:
-                columns = ["surface_elevation"]
+                columns = ["current_surface_elevation"]
 
             new_elevs = idw(
                 coords=source_points_sn[["s_coord", "n_coord"]].to_numpy(),
@@ -236,7 +238,7 @@ def aeidw(config: dict):
             )
 
             # add the interpolated elevations to the target_points
-            target_points.loc[target_idx, "surface_elevation"] = new_elevs[:, 0]
+            target_points.loc[target_idx, "current_surface_elevation"] = new_elevs[:, 0]
             if "preimpoundment_elevation" in source_points_sn.columns:
                 target_points.loc[target_idx, "preimpoundment_elevation"] = new_elevs[
                     :, 1

@@ -124,10 +124,10 @@ def new_config(configfile: Optional[Path]):
     ).ask()
     choices.remove(survey_y_coord)
 
-    survey_surface_elevation = questionary.select(
+    survey_current_surface_elevation = questionary.select(
         "Choose survey surface elevation column", choices=choices
     ).ask()
-    choices.remove(survey_surface_elevation)
+    choices.remove(survey_current_surface_elevation)
 
     has_preimpoundment = questionary.confirm(
         "Does the survey have preimpoundment data?"
@@ -145,7 +145,9 @@ def new_config(configfile: Optional[Path]):
     config["survey_points"]["filepath"] = str(Path(survey_points_file).absolute())
     config["survey_points"]["x_coord_column"] = survey_x_coord
     config["survey_points"]["y_coord_column"] = survey_y_coord
-    config["survey_points"]["surface_elevation_column"] = survey_surface_elevation
+    config["survey_points"][
+        "current_surface_elevation_column"
+    ] = survey_current_surface_elevation
     config["survey_points"][
         "preimpoundment_elevation_column"
     ] = survey_preimpoundment_elevation

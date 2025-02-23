@@ -22,7 +22,7 @@ config_mapper = {
         "filepath": "Survey Points (*.csv)",
         "x_coord_column": "X Coordinate",
         "y_coord_column": "Y Coordinate",
-        "surface_elevation_column": "Surface Elevation",
+        "current_surface_elevation_column": "Surface Elevation",
         "preimpoundment_elevation_column": "Pre-Impoundment Elevation",
         "crs": "Survey Points CRS",
     },
