@@ -123,7 +123,7 @@ class FileFolderPicker(Viewer):
                 elif file_path.suffix == ".shp":
                     self.gdf = gpd.read_file(file_path, rows=0)
                     columns = self.gdf.columns.tolist()
-            columns.append(None)
+
             for column in self.mapping_widgets:
                 self.mapping_widgets[column].options = {k: k for k in columns}
                 self.mapping_widgets[column].value = None
