@@ -1,58 +1,111 @@
+import datetime
 import tomllib
 from pathlib import Path
 
 import panel as pn
 import tomli_w
-from widgets import ColumnMapper, CommandRunner, FileSelectorModal
+from widgets import CommandRunner, FileFolderPicker
 
 pn.extension("modal", "terminal")
 
-lake = pn.widgets.TextInput(name="Lake", placeholder="Enter Lake Name")
+config_mapper = {
+    "lake": {
+        "name": "Lake",
+        "survey_year": "Survey Year",
+    },
+    "boundary": {
+        "filepath": "Boundary ShapeFile",
+        "elevation_column": "Elevation",
+        "max_segment_length": "Max Segment Length",
+    },
+    "survey_points": {
+        "filepath": "Survey Points (*.csv)",
+        "x_coord_column": "X Coordinate",
+        "y_coord_column": "Y Coordinate",
+        "surface_elevation_column": "Surface Elevation",
+        "preimpoundment_elevation_column": "Pre-Impoundment Elevation",
+        "crs": "Survey Points CRS",
+    },
+    "interpolation_centerlines": {
+        "filepath": "Interpolation Centerlines ShapeFile",
+        "polygon_id_column": "Polygon Id",
+        "max_segment_length": "Max Segment Length",
+    },
+    "interpolation_polygons": {
+        "filepath": "Interpolation Polygons ShapeFile",
+        "polygon_id_column": "Polygon Id",
+        "grid_spacing_column": "Grid Spacing",
+        "priority_column": "Polygin Priority",
+        "interpolation_method_column": "Interpolation Method",
+        "interpolation_params_column": "Interpolation Parameters",
+        "buffer": "Polygon Buffer",
+        "nearest_neighbors": "Nearest Neighbors",
+    },
+    "output": {
+        "filepath": "Output File",
+    },
+}
+
+
+def get_data_fields(cols):
+    return {k: v for k, v in cols.items() if "_column" in k}
+
+
+lake = pn.widgets.TextInput(
+    name=config_mapper["lake"]["name"], placeholder="Enter Lake Name"
+)
 year = pn.widgets.IntInput(
-    name="Survey Year", value=2025, placeholder="Enter Survey Year"
+    name=config_mapper["lake"]["survey_year"], value=datetime.date.today().year
 )
 
-
-input_dir = "~/"
 # boundary
-boundary_file = ColumnMapper(
-    name="Lake Boundary ShapeFile",
-    data_fields=["elevation"],
-    FileSelectorParams={"directory": input_dir, "file_pattern": "*.shp"},
+boundary_file = FileFolderPicker(
+    name=config_mapper["boundary"]["filepath"],
+    data_fields=get_data_fields(config_mapper["boundary"]),
+    file_pattern="*.shp",
 )
-boundary_max_segment_length = pn.widgets.IntInput(name="Max Segment Length", value=10)
-boundary_crs = pn.widgets.TextInput(name="CRS", disabled=True)
+boundary_max_segment_length = pn.widgets.IntInput(
+    name=config_mapper["boundary"]["max_segment_length"], value=10
+)
 
 # survey points
-survey_points_file = ColumnMapper(
-    name="Survey Points CSV",
-    data_fields=["x_coord", "y_coord", "surface_elevation", "preimpoundment_elevation"],
-    FileSelectorParams={"directory": input_dir, "file_pattern": "*.csv"},
+survey_points_file = FileFolderPicker(
+    name=config_mapper["survey_points"]["filepath"],
+    data_fields=get_data_fields(config_mapper["survey_points"]),
+    file_pattern="*.csv",
 )
-survey_points_crs = pn.widgets.TextInput(name="Survey Points CRS")
+survey_points_crs = pn.widgets.TextInput(
+    name=config_mapper["survey_points"]["crs"],
+    placeholder="Optional: default is boundary CRS",
+)
 
 # interpolation centerlines
-interpolation_centerlines_file = ColumnMapper(
-    name="Interpolation Centerlines ShapeFile",
-    data_fields=["polygon id"],
-    FileSelectorParams={"directory": input_dir, "file_pattern": "*.shp"},
+interpolation_centerlines_file = FileFolderPicker(
+    name=config_mapper["interpolation_centerlines"]["filepath"],
+    data_fields=get_data_fields(config_mapper["interpolation_centerlines"]),
+    file_pattern="*.shp",
 )
-centerline_max_segment_length = pn.widgets.IntInput(name="Max Segment Length", value=10)
-
+centerline_max_segment_length = pn.widgets.IntInput(
+    name=config_mapper["interpolation_centerlines"]["max_segment_length"], value=10
+)
 
 # interpolation polygons
-interpolation_polygons_file = ColumnMapper(
-    name="Interpolation Polygons ShapeFile",
-    data_fields=["polygon id", "grid spacing", "priority", "method", "params"],
-    FileSelectorParams={"directory": input_dir, "file_pattern": "*.shp"},
+interpolation_polygons_file = FileFolderPicker(
+    name=config_mapper["interpolation_polygons"]["filepath"],
+    data_fields=get_data_fields(config_mapper["interpolation_polygons"]),
+    file_pattern="*.shp",
 )
-buffer = pn.widgets.IntInput(name="Buffer", value=100)
-nearest_neighbors = pn.widgets.IntInput(name="Nearest Neighbors", value=100)
+buffer = pn.widgets.IntInput(
+    name=config_mapper["interpolation_polygons"]["buffer"], value=100
+)
+nearest_neighbors = pn.widgets.IntInput(
+    name=config_mapper["interpolation_polygons"]["nearest_neighbors"], value=100
+)
 
 # output directory
-output_file_dir = FileSelectorModal(
-    name="Output Directory",
-    FileSelectorParams={"directory": "~/", "file_pattern": ""},
+output_file_dir = FileFolderPicker(
+    name="Output Folder",
+    only_folders=True,
 )
 output_file_name = pn.widgets.TextInput(name="Output File Name", value="output")
 
@@ -70,69 +123,25 @@ def on_run_button_clicked(event):
     config["lake"]["name"] = lake.value
     config["lake"]["survey_year"] = year.value
 
-    config["boundary"] = {}
-    config["boundary"]["filepath"] = boundary_file.input_file.selected_file.value
-    config["boundary"]["elevation_column"] = boundary_file.mapping_widgets[
-        "elevation"
-    ].value
+    # selected = boundary_file.get_selected()
+    config["boundary"] = boundary_file.get_selected()
     config["boundary"]["max_segment_length"] = boundary_max_segment_length.value
 
-    config["survey_points"] = {}
-    config["survey_points"][
-        "filepath"
-    ] = survey_points_file.input_file.selected_file.value
-    config["survey_points"]["x_coord_column"] = survey_points_file.mapping_widgets[
-        "x_coord"
-    ].value
-    config["survey_points"]["y_coord_column"] = survey_points_file.mapping_widgets[
-        "y_coord"
-    ].value
-    config["survey_points"]["surface_elevation_column"] = (
-        survey_points_file.mapping_widgets["surface_elevation"].value
-    )
-    config["survey_points"]["preimpoundment_elevation_column"] = (
-        survey_points_file.mapping_widgets["preimpoundment_elevation"].value
-    )
+    config["survey_points"] = survey_points_file.get_selected()
     config["survey_points"]["crs"] = survey_points_crs.value
-    if config["survey_points"]["crs"] == "":
-        config["survey_points"]["crs"] = boundary_crs.value
 
-    config["interpolation_centerlines"] = {}
-    config["interpolation_centerlines"][
-        "filepath"
-    ] = interpolation_centerlines_file.input_file.selected_file.value
-    config["interpolation_centerlines"]["polygon_id_column"] = (
-        interpolation_centerlines_file.mapping_widgets["polygon id"].value
-    )
+    config["interpolation_centerlines"] = interpolation_centerlines_file.get_selected()
     config["interpolation_centerlines"][
         "max_segment_length"
     ] = centerline_max_segment_length.value
 
-    config["interpolation_polygons"] = {}
-    config["interpolation_polygons"][
-        "filepath"
-    ] = interpolation_polygons_file.input_file.selected_file.value
-    config["interpolation_polygons"]["polygon_id_column"] = (
-        interpolation_polygons_file.mapping_widgets["polygon id"].value
-    )
-    config["interpolation_polygons"]["grid_spacing_column"] = (
-        interpolation_polygons_file.mapping_widgets["grid spacing"].value
-    )
-    config["interpolation_polygons"]["priority_column"] = (
-        interpolation_polygons_file.mapping_widgets["priority"].value
-    )
-    config["interpolation_polygons"]["interpolation_method_column"] = (
-        interpolation_polygons_file.mapping_widgets["method"].value
-    )
-    config["interpolation_polygons"]["interpolation_params_column"] = (
-        interpolation_polygons_file.mapping_widgets["params"].value
-    )
+    config["interpolation_polygons"] = interpolation_polygons_file.get_selected()
     config["interpolation_polygons"]["buffer"] = buffer.value
     config["interpolation_polygons"]["nearest_neighbors"] = nearest_neighbors.value
 
     config["output"] = {}
     output_filepath = (
-        Path(output_file_dir.selected_file.value)
+        Path(output_file_dir.get_selected()["filepath"])
         .joinpath(output_file_name.value)
         .with_suffix(".csv")
     )
@@ -142,7 +151,7 @@ def on_run_button_clicked(event):
         config_filepath = Path(load_config.selected_file.value)
     else:
         config_filepath = (
-            Path(create_config_dir.selected_file.value)
+            Path(create_config_dir.selected_path.value)
             .joinpath(create_config_file_name.value)
             .with_suffix(".toml")
         )
@@ -244,26 +253,28 @@ def apply_config(event):
     output_file_name.value = Path(config["output"]["filepath"]).stem
 
 
-load_config = FileSelectorModal(
+load_config = FileFolderPicker(
     name="Existing Config File (*.toml)",
-    FileSelectorParams={"directory": "~/", "file_pattern": "*.toml"},
+    file_pattern="*.toml",
 )
-bound_load_config = pn.bind(apply_config, load_config.selected_file)
+load_config_button = pn.widgets.Button(name="Load Config")
+load_config_button.on_click(apply_config)
+# bound_load_config = ""
+# pn.bind(apply_config, load_config.selected_file)
 
 # create config file
-create_config_dir = FileSelectorModal(
+create_config_dir = FileFolderPicker(
     name="Config File Directory",
-    FileSelectorParams={"directory": "~/", "file_pattern": ""},
+    only_folders=True,
 )
 create_config_file_name = pn.widgets.TextInput(
     name="New Config File Name (*.toml)", value="config"
 )
 
-
 config_type = pn.Tabs(
     pn.Column(
         load_config,
-        bound_load_config,
+        load_config_button,
         name="Load Existing Configuration",
     ),
     pn.Column(
