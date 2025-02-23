@@ -110,10 +110,10 @@ output_file_dir = FileFolderPicker(
 output_file_name = pn.widgets.TextInput(name="Output File Name", value="output")
 
 terminal = CommandRunner()
-cli_command = pn.widgets.TextInput(
-    name="CLI Command",
+cli_command = pn.widgets.StaticText(
+    name="CLI Command: ",
     value="hstools interpolate-lake /path/to/config.toml",
-    disabled=True,
+    # disabled=True,
 )
 
 
