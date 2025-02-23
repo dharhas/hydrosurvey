@@ -92,7 +92,7 @@ def new_config(configfile: Optional[Path]):
     ).ask()
 
     # read boundary file to get column names
-    print(gpd.read_file(boundary_file).columns)
+    crs = gpd.read_file(boundary_file, rows=0).crs.to_string()
     boundary_elevation_column = questionary.select(
         "Choose Boundary Elevation Column",
         choices=gpd.read_file(boundary_file, rows=0).columns.tolist(),
@@ -139,7 +139,7 @@ def new_config(configfile: Optional[Path]):
     else:
         survey_preimpoundment_elevation = ""
 
-    survey_crs = questionary.text("Enter Survey CRS").ask()
+    survey_crs = questionary.text("Enter Survey CRS", default=crs).ask()
 
     config["survey_points"] = {}
     config["survey_points"]["filepath"] = str(Path(survey_points_file).absolute())

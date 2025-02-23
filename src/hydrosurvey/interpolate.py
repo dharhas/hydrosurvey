@@ -120,8 +120,13 @@ def read_lake_data(config: dict):
     geometry = [Point(xy) for xy in zip(df["x_coord"], df["y_coord"])]
 
     # Create a GeoDataFrame
+    survey_crs = config["survey_points"].get("crs", "")
+    if survey_crs is "":
+        survey_crs = boundary.crs.to_string()
     survey_points = gpd.GeoDataFrame(
-        df, geometry=geometry, crs=config["survey_points"]["crs"]
+        df,
+        geometry=geometry,
+        crs=survey_crs,
     ).drop(columns=["x_coord", "y_coord"])
 
     return boundary, lines, polygons, survey_points
