@@ -164,7 +164,7 @@ class FileFolderPicker(Viewer):
         self.mapping_widgets.clear()
         for column in self.data_fields:
             self.mapping_widgets[column] = pn.widgets.Select(
-                name=column, options=[], visible=False
+                name=column.replace("_", " ").title(), options=[], visible=False
             )
         self.column_mapper.extend(self.mapping_widgets.values())
 
