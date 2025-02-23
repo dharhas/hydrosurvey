@@ -7,8 +7,38 @@ import pandas as pd
 import panel as pn
 import psutil
 from panel.viewable import Viewer
+from rapidfuzz import fuzz
 
 pn.extension("modal")
+
+
+def fuzzy_field_match(field, options, threshold=30):
+
+    if "_id_" in field.lower():
+        matches = {opt: fuzz.ratio("id", opt.lower()) for opt in options}
+    elif "method" in field.lower():
+        # match for `method` or `type`
+        method_matches = {opt: fuzz.ratio("method", opt.lower()) for opt in options}
+        type_matches = {opt: fuzz.ratio("typ", opt.lower()) for opt in options}
+        method_max = max(method_matches, key=method_matches.get)
+        type_max = max(type_matches, key=type_matches.get)
+        if method_matches[method_max] > type_matches[type_max]:
+            matches = method_matches
+        else:
+            matches = type_matches
+    elif "_coord_" in field.lower():
+        matches = {
+            opt: fuzz.ratio(field.split("_")[0].lower(), opt.lower()) for opt in options
+        }
+    else:
+        matches = {opt: fuzz.ratio(field.lower(), opt.lower()) for opt in options}
+
+    best = max(matches, key=matches.get)
+
+    if matches[best] > threshold:
+        return best
+    else:
+        return None
 
 
 class FileFolderPicker(Viewer):
@@ -119,17 +149,18 @@ class FileFolderPicker(Viewer):
             file_path = Path(file_path)
             if file_path.exists():
                 if file_path.suffix == ".csv":
-                    columns = pd.read_csv(file_path, nrows=0).columns.tolist()
+                    options = pd.read_csv(file_path, nrows=0).columns.tolist()
                 elif file_path.suffix == ".shp":
                     self.gdf = gpd.read_file(file_path, rows=0)
-                    columns = self.gdf.columns.tolist()
+                    options = self.gdf.columns.tolist()
 
-            for column in self.mapping_widgets:
-                self.mapping_widgets[column].options = {k: k for k in columns}
-                self.mapping_widgets[column].value = None
-                self.mapping_widgets[column].visible = True
+            for field in self.data_fields:
+                self.mapping_widgets[field].options = {k: k for k in options}
+                self.mapping_widgets[field].value = fuzzy_field_match(field, options)
+                self.mapping_widgets[field].visible = True
 
     def create_mapping_widgets(self):
+        self.column_mapper.clear()
         self.mapping_widgets.clear()
         for column in self.data_fields:
             self.mapping_widgets[column] = pn.widgets.Select(
