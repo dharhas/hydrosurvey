@@ -8,6 +8,7 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import panel as pn
 import questionary
 import rasterio
 import tomli_w
@@ -259,9 +260,24 @@ def gui():
     Launch the Hydrosurvey GUI.
     """
     print("Launching Hydrosurvey GUI")
-    # this is hacky but works for now
-    p = Path(os.path.abspath(__file__)).parent
-    subprocess.run(["panel", "serve", str(p.joinpath("gui.py")), "--show"])
+    from .gui import template
+
+    # Define a function to close the server
+    def close_server():
+        pn.state.kill_all_servers()
+        print("Panel server stopped.")
+        os._exit(0)  # Forcefully exit the process
+
+    # Create a button to close the server
+    shutdown_button = pn.widgets.Button(name="Close HSTools")
+    shutdown_button.js_on_click(code="window.close();")
+    shutdown_button.on_click(lambda event: close_server())
+
+    # Add the shutdown button to the template (e.g., in the sidebar or main area)
+    template.sidebar.append(pn.layout.Divider())
+    template.sidebar.append(shutdown_button)
+
+    pn.serve(template, show=True)
 
 
 @app.command()

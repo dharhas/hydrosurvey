@@ -4,7 +4,8 @@ from pathlib import Path
 
 import panel as pn
 import tomli_w
-from widgets import CommandRunner, FileFolderPicker
+
+from .widgets import CommandRunner, FileFolderPicker
 
 pn.extension("modal", "terminal")
 
@@ -328,5 +329,3 @@ template = pn.template.MaterialTemplate(
     sidebar=sidebar,
     main=[main_content],
 )
-
-template.servable()
