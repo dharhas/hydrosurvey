@@ -5,7 +5,7 @@ from pathlib import Path
 import panel as pn
 import tomli_w
 
-from .widgets import CommandRunner, FileFolderPicker
+from .widgets import CommandRunner, FileFolderPicker, InterpolateLakeViewer
 
 pn.extension("modal", "terminal")
 
