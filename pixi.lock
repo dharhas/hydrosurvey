@@ -5979,7 +5979,7 @@ packages:
   name: hydrosurvey
   version: 0.1.0
   path: .
-  sha256: 3d565ae10e5651a831b9b7279ef519f356010c09be00a8af06fa018873f67906
+  sha256: e3f4c88499d1c3e3ef389ae05fbea086e0613f8a3a6b0ae47ce614680b3a4731
   requires_python: '>=3.9'
   editable: true
 - kind: conda
