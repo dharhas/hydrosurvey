@@ -169,9 +169,6 @@ class InterpolateLakeViewer(pn.viewable.Viewer):
             ),
         )
 
-        self.close_button = pn.widgets.Button(name="Close Application")
-        self.close_button.on_click(self.close_panel)
-
         self.layout = pn.Row(
             pn.Spacer(width=50),
             pn.Column(
@@ -209,39 +206,11 @@ class InterpolateLakeViewer(pn.viewable.Viewer):
                 self.save_and_run,
                 self.cli_command,
                 self.terminal,
-                self.close_button,
             ),
         )
 
-        # Define the main content
-        self.main_content = pn.Column(self.layout)
-
-        # Create the sidebar buttons
-        self.menu_lake = pn.widgets.Button(name="Lake Interpolation")
-        self.menu_eac = pn.widgets.Button(name="Elevation Area Capacity Curve")
-
-        # Attach the update function
-        self.menu_lake.on_click(self.update_content)
-        self.menu_eac.on_click(self.update_content)
-
-        # Build the sidebar
-        self.sidebar = pn.Column(
-            "## Application Menu",
-            # pn.layout.Divider(),
-            self.menu_lake,
-            self.menu_eac,
-            width=25,
-        )
-
-        # Build the template
-        self.template = pn.template.MaterialTemplate(
-            title="HydroSurvey Tools (HSTools)",
-            sidebar=self.sidebar,
-            main=[self.main_content],
-        )
-
     def __panel__(self):
-        return self.template
+        return self.layout
 
     def get_data_fields(self, cols):
         return {k: v for k, v in cols.items() if "_column" in k}
@@ -354,25 +323,3 @@ class InterpolateLakeViewer(pn.viewable.Viewer):
             Path(config["output"]["filepath"]).parent
         )
         self.output_file_name.value = Path(config["output"]["filepath"]).stem
-
-    # Define a function to update the main content
-    def update_content(self, event):
-        if event.obj.name == "Lake Interpolation":
-            self.main_content[0] = self.layout
-        else:
-            self.main_content[0] = pn.pane.Markdown(
-                f"# {event.obj.name} is not available"
-            )
-
-    def close_panel(self, event):
-        """
-        Closes the Panel server and, ideally, the browser tab.
-        """
-        logging.info("Closing Panel application.")
-        pn.state.kill_server()
-        # os.kill(os.getpid(), signal.SIGINT) # this is a more forceful way to kill the process
-        sys.exit(0)  # Terminate the script
-
-
-viewer = InterpolateLakeViewer()
-viewer.template.servable()
