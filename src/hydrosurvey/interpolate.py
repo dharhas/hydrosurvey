@@ -73,6 +73,8 @@ def read_lake_data(config: dict):
     boundary = gpd.read_file(config["boundary"]["filepath"]).rename(
         columns={config["boundary"]["elevation_column"]: "elevation"}
     )[["elevation", "geometry"]]
+    boundary["source"] = config["boundary"]["filepath"]
+    boundary["type"] = "boundary"
 
     lines = gpd.read_file(config["interpolation_centerlines"]["filepath"]).set_index(
         config["interpolation_centerlines"]["polygon_id_column"]
@@ -123,13 +125,15 @@ def read_lake_data(config: dict):
 
     # Create a GeoDataFrame
     survey_crs = config["survey_points"].get("crs", "")
-    if survey_crs is "":
+    if survey_crs == "":
         survey_crs = boundary.crs.to_string()
     survey_points = gpd.GeoDataFrame(
         df,
         geometry=geometry,
         crs=survey_crs,
     ).drop(columns=["x_coord", "y_coord"])
+    survey_points["source"] = config["survey_points"]["filepath"]
+    survey_points["type"] = "survey"
 
     return boundary, lines, polygons, survey_points
 
@@ -178,6 +182,8 @@ def aeidw(config: dict):
         )
     )
     boundary_points["current_surface_elevation"] = boundary.iloc[0]["elevation"]
+    boundary_points["source"] = boundary["source"].iloc[0]
+    boundary_points["type"] = "boundary"
     survey_points = gpd.GeoDataFrame(
         pd.concat(
             [survey_points, boundary_points],
@@ -191,6 +197,9 @@ def aeidw(config: dict):
 
     # remove points outside the boundary or within islands
     target_points = target_points.clip(boundary)
+
+    target_points["source"] = ""
+    target_points["type"] = "interpolated"
 
     for idx, _ in tqdm(
         polygons.iterrows(),
@@ -243,6 +252,11 @@ def aeidw(config: dict):
                 target_points.loc[target_idx, "preimpoundment_elevation"] = new_elevs[
                     :, 1
                 ]
+
+            # add source and type infor to dataframe
+            target_points.loc[target_idx, "source"] = (
+                f"polygon: {idx},: method {method}, params: {params}"
+            )
         else:
             print(f"Interpolation method {method} not recognized for polygon id {idx}")
 

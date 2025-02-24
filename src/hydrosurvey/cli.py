@@ -249,8 +249,8 @@ def interpolate_lake(configfile: Optional[Path]):
     interpolated_points = aeidw(config)
 
     # write out the interpolated elevations
-    print(f"Writing interpolated elevations to {config['output']['filepath']}")
-    points_to_csv(interpolated_points, config["output"]["filepath"])
+    print(f"Writing interpolated elevations to file:")
+    points_to_file(interpolated_points, config["output"]["filepath"])
 
 
 @app.command()
@@ -366,17 +366,40 @@ def plot_eac_curve(eac):
     plt.savefig("elevation_area_capacity.png")
 
 
-def points_to_csv(gdf: gpd.GeoDataFrame, output_file: str):
+def points_to_file(gdf: gpd.GeoDataFrame, output_file: str):
+
+    output_file = Path(output_file)
+    gdf = gdf.drop(columns=["id"])
+
+    # Write to GeoPackage
+    print(f"\t geopackage written to {output_file.with_suffix('.gpkg')}")
+    gdf.to_file(output_file.with_suffix(".gpkg"), driver="GPKG")
+
+    # write to Parquet
+    print(f"\t geoparquet written to {output_file.with_suffix('.parquet')}")
+    gdf.to_parquet(output_file.with_suffix(".parquet"))
+
+    # write to CSV
+
     # Extract coordinates
     gdf["x_coordinate"] = gdf.geometry.x
     gdf["y_coordinate"] = gdf.geometry.y
 
-    # Drop the geometry column
-    gdf = gdf.drop(columns="geometry")
+    # Drop the geometry column and sort
+    gdf = gdf.drop(columns=["geometry"])
+    gdf = gdf.sort_values(by=["x_coordinate", "y_coordinate"])
 
-    # Write to CSV
-    print(f"Writing DataFrame to {output_file}")
-    gdf.to_csv(output_file, index=False)
+    column_order = [
+        "x_coordinate",
+        "y_coordinate",
+        "current_surface_elevation",
+        "preimpoundment_elevation",
+        "type",
+        "source",
+    ]
+
+    print(f"\t csv written to {output_file.with_suffix('.csv')}")
+    gdf.to_csv(output_file.with_suffix(".csv"), columns=column_order, index=False)
 
 
 def is_python_file(path: str) -> bool:
