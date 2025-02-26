@@ -182,6 +182,8 @@ def aeidw(config: dict):
         )
     )
     boundary_points["current_surface_elevation"] = boundary.iloc[0]["elevation"]
+    if "preimpoundment_elevation" in survey_points.columns:
+        boundary_points["preimpoundment_elevation"] = boundary.iloc[0]["elevation"]
     boundary_points["source"] = boundary["source"].iloc[0]
     boundary_points["type"] = "boundary"
     survey_points = gpd.GeoDataFrame(
