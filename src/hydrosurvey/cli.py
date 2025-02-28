@@ -308,9 +308,6 @@ def compute_eac(
     if not lake_elevation:
         lake_elevation = da.max(skipna=True).to_dataarray().values[0]
 
-    # if not step_size:
-    #    step_size = 0.1
-
     lowest_elevation = da.min(skipna=True).to_dataarray().values[0]
     eac = []
 
@@ -351,7 +348,7 @@ def compute_eac(
 
     eac = np.array(eac)
     if plot_curve:
-        plot_eac_curve(eac)
+        plot_eac_curve(eac, output_file.with_suffix(".png"))
 
     fmt = "%1.2f, %1.4f, %1.4f"
     np.savetxt(
@@ -364,7 +361,7 @@ def compute_eac(
     print(f"EAC curve saved to {output_file}")
 
 
-def plot_eac_curve(eac):
+def plot_eac_curve(eac, output_file):
     fig, ax1 = plt.subplots()
     ax1.plot(eac[:, 1], eac[:, 0], "b")
     ax1.set_ylabel("Elevation")
@@ -379,7 +376,7 @@ def plot_eac_curve(eac):
     ax2.set_xlim(ax2.get_xlim()[::-1])
 
     fig.tight_layout()
-    plt.savefig("elevation_area_capacity.png")
+    plt.savefig(output_file)
 
 
 def points_to_file(gdf: gpd.GeoDataFrame, output_file: str):

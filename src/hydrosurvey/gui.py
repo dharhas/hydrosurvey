@@ -5,7 +5,7 @@ from pathlib import Path
 import panel as pn
 import tomli_w
 
-from .widgets import CommandRunner, FileFolderPicker, InterpolateLakeViewer
+from .widgets import CommandRunner, EACViewer, FileFolderPicker, InterpolateLakeViewer
 
 pn.extension("modal", "terminal")
 
@@ -13,12 +13,15 @@ pn.extension("modal", "terminal")
 # Define a function to update the main content
 def update_content(event):
     if event.obj.name == "Lake Interpolation":
-        main_content[0] = lake_viewer.__panel__()
+        main_content[0] = lake_viewer
+    elif event.obj.name == "Elevation Area Capacity Curve":
+        main_content[0] = eac_viewer
     else:
         main_content[0] = pn.pane.Markdown(f"# {event.obj.name} is not available")
 
 
 lake_viewer = InterpolateLakeViewer()
+eac_viewer = EACViewer()
 
 # Define the main content
 main_content = pn.Column(lake_viewer)
