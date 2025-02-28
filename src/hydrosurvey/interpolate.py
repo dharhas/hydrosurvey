@@ -211,6 +211,11 @@ def aeidw(config: dict):
         method = polygons["method"].loc[idx]
         params = polygons["params"].loc[idx]
 
+        target_idx = target_points["id"] == idx
+        if target_idx.empty:
+            print(f"Polygon id {idx} not found in target_points")
+            continue
+
         # interpolate the elevations
         if method.lower() == "aeidw":
             # get the centerline for the polygon
@@ -218,11 +223,6 @@ def aeidw(config: dict):
             source_points = survey_points.clip(
                 polygons.loc[[idx]].buffer(config["interpolation_polygons"]["buffer"])
             )
-
-            target_idx = target_points["id"] == idx
-            if target_idx.empty:
-                print(f"Polygon id {idx} not found in target_points")
-                continue
 
             # transform the survey_points and target points to SN coordinates
             sn_transform = Coord_SN(centerline)
@@ -256,6 +256,16 @@ def aeidw(config: dict):
                 ]
 
             # add source and type infor to dataframe
+            target_points.loc[target_idx, "source"] = (
+                f"polygon: {idx},: method {method}, params: {params}"
+            )
+        elif method.lower() == "constant":
+            # set the elevations to a constant value
+            elev = float(params)
+            target_points.loc[target_idx, "current_surface_elevation"] = elev
+            if "preimpoundment_elevation" in source_points.columns:
+                target_points.loc[target_idx, "preimpoundment_elevation"] = elev
+
             target_points.loc[target_idx, "source"] = (
                 f"polygon: {idx},: method {method}, params: {params}"
             )
