@@ -285,8 +285,8 @@ def compute_eac(
     raster_file: Path,
     output_file: Path,
     lake_elevation: Optional[float] = None,
-    step_size: Optional[float] = None,
-    nodata: Optional[float] = None,
+    step_size: Optional[float] = 0.1,
+    nodata: Optional[float] = -9999.0,
     # plot_areas: Optional[bool] = None,
     plot_curve: Optional[bool] = None,
 ):
@@ -300,16 +300,16 @@ def compute_eac(
 
     pixel_area = pixel_dx * pixel_dy
 
-    if not nodata:
-        nodata = -9999.0
+    # if not nodata:
+    #    nodata = -9999.0
 
     da = da.where(da != nodata)
 
     if not lake_elevation:
         lake_elevation = da.max(skipna=True).to_dataarray().values[0]
 
-    if not step_size:
-        step_size = 0.1
+    # if not step_size:
+    #    step_size = 0.1
 
     lowest_elevation = da.min(skipna=True).to_dataarray().values[0]
     eac = []
