@@ -16,16 +16,43 @@ import typer
 import xarray as xr
 from rich import print
 
+from . import __version__
 from .interpolate import aeidw
 
 app = typer.Typer(
-    help="Hydrosurvey CLI",
+    help=f"Hydrosurvey Tools v{__version__}",
     add_completion=True,
     no_args_is_help=True,
     rich_markup_mode="rich",
     pretty_exceptions_show_locals=False,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
+
+
+def version_callback(value: bool):
+    """
+    Show the version of the hydrosurvey package.
+    """
+    if value:
+        print(f"hydrosurvey version: {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: Optional[bool] = typer.Option(
+        None,
+        "-v",
+        "--version",
+        callback=version_callback,
+        is_eager=True,
+        help="Show the version and exit.",
+    ),
+):
+    """
+    Hydrosurvey Tools
+    """
+    return
 
 
 @app.command()
