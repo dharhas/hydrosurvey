@@ -286,7 +286,7 @@ def compute_eac(
     output_file: Path,
     lake_elevation: Optional[float] = None,
     step_size: Optional[float] = 0.1,
-    nodata: Optional[float] = -9999.0,
+    overide_nodata: Optional[float] = None,
     # plot_areas: Optional[bool] = None,
     plot_curve: Optional[bool] = None,
 ):
@@ -300,8 +300,8 @@ def compute_eac(
 
     pixel_area = pixel_dx * pixel_dy
 
-    # if not nodata:
-    #    nodata = -9999.0
+    if overide_nodata:
+        nodata = overide_nodata
 
     da = da.where(da != nodata)
 
