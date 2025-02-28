@@ -8,14 +8,11 @@ dynamic = ["version"]
 
 [build-system]
 build-backend = "hatchling.build"
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 
 [tool.hatch.version]
-source = "git"
-
-[tool.hatch.version.raw-options]
-distance-template = "{tag}.dev{distance}+{node}"
-dirty-template = "{tag}+dirty.{node}"
+source = "vcs"
+format = "{version}"
 
 [tool.pixi.project]
 channels = ["conda-forge"]
