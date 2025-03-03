@@ -4673,8 +4673,8 @@ packages:
   timestamp: 1729160766015
 - pypi: .
   name: hydrosurvey
-  version: 0.3.1.dev0+g208b7bf.d20250228
-  sha256: 767cc7f3c77805fb225614c2a0f606a261ded450f4830a1460c0c9ec362a0250
+  version: 0.3.0
+  sha256: 8080145cc0f34b928c262809c1e78dc93c820365529b993b9e9bba8efafb40a5
   requires_python: '>=3.9'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/hyperframe-6.0.1-pyhd8ed1ab_1.conda

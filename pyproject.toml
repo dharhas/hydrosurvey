@@ -4,15 +4,11 @@ dependencies = []
 description = "Add a short description here"
 name = "hydrosurvey"
 requires-python = ">= 3.9"
-dynamic = ["version"]
+version = "0.3.0"
 
 [build-system]
 build-backend = "hatchling.build"
-requires = ["hatchling", "hatch-vcs"]
-
-[tool.hatch.version]
-source = "vcs"
-format = "{version}"
+requires = ["hatchling"]
 
 [tool.pixi.project]
 channels = ["conda-forge"]
