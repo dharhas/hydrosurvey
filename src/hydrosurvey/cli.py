@@ -56,13 +56,13 @@ def main(
 
 
 @app.command()
-def write_xyz(
+def sdi2csv(
     path: Path, 
     output_file: str,
     tide_file: Optional[str] = None,
     usgs_parameter: Optional[str] = None
 ):  # usgs_site, usgs_parameter):
-    """Reads SDI binary and pick files and writes to xyz file."""
+    """Reads SDI binary and pick files and writes to CSV file."""
     path = Path(path)
     output_file = Path(output_file)
     data = []

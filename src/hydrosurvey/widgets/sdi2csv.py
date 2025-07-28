@@ -7,7 +7,7 @@ from .command_runner import CommandRunner
 from .file_picker import FileFolderPicker
 
 
-class WriteXYZViewer(Viewer):
+class SDI2CSVViewer(Viewer):
     def __init__(self, **params):
         self.command_runner = CommandRunner()
         self.sdi_folder = FileFolderPicker(
@@ -42,11 +42,11 @@ class WriteXYZViewer(Viewer):
 
         self.cli_command = pn.widgets.StaticText(
             name="CLI Command: ",
-            value="hstools write-xyz /path/to/sdi/folder /path/to/output.csv",
+            value="hstools sdi2csv /path/to/sdi/folder /path/to/output.csv",
         )
 
-        self.run_button = pn.widgets.Button(name="Run Write XYZ")
-        self.run_button.on_click(self.run_write_xyz)
+        self.run_button = pn.widgets.Button(name="Run SDI2CSV")
+        self.run_button.on_click(self.run_sdi2csv)
 
         # output directory
         self.output_file_dir = FileFolderPicker(
@@ -58,7 +58,7 @@ class WriteXYZViewer(Viewer):
         )
 
         self.layout = pn.Column(
-            pn.pane.Markdown("# Write XYZ from SDI Files"),
+            pn.pane.Markdown("# Convert SDI to CSV"),
             pn.layout.Divider(),
             pn.Row(
                 pn.Column(
@@ -80,10 +80,10 @@ class WriteXYZViewer(Viewer):
         """Toggle visibility of tide-related widgets based on checkbox state."""
         self.tide_widgets.visible = event.new
 
-    def run_write_xyz(self, event):
+    def run_sdi2csv(self, event):
         command = [
             "hstools",
-            "write-xyz",
+            "sdi2csv",
             self.sdi_folder.get_selected()["filepath"],
             str(
                 Path(self.output_file_dir.get_selected()["filepath"])

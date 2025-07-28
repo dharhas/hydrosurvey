@@ -5,7 +5,7 @@ from pathlib import Path
 import panel as pn
 import tomli_w
 
-from .widgets import CommandRunner, EACViewer, FileFolderPicker, InterpolateLakeViewer, WriteXYZViewer
+from .widgets import CommandRunner, EACViewer, FileFolderPicker, InterpolateLakeViewer, SDI2CSVViewer
 
 pn.extension("modal", "terminal")
 
@@ -16,15 +16,15 @@ def update_content(event):
         main_content[0] = lake_viewer
     elif event.obj.name == "Elevation Area Capacity Curve":
         main_content[0] = eac_viewer
-    elif event.obj.name == "Write XYZ":
-        main_content[0] = write_xyz_viewer
+    elif event.obj.name == "SDI to CSV":
+        main_content[0] = sdi2csv_viewer
     else:
         main_content[0] = pn.pane.Markdown(f"# {event.obj.name} is not available")
 
 
 lake_viewer = InterpolateLakeViewer()
 eac_viewer = EACViewer()
-write_xyz_viewer = WriteXYZViewer()
+sdi2csv_viewer = SDI2CSVViewer()
 
 # Define the main content
 main_content = pn.Column(lake_viewer)
@@ -32,12 +32,12 @@ main_content = pn.Column(lake_viewer)
 # Create the sidebar buttons
 menu_lake = pn.widgets.Button(name="Lake Interpolation")
 menu_eac = pn.widgets.Button(name="Elevation Area Capacity Curve")
-menu_write_xyz = pn.widgets.Button(name="Write XYZ")
+menu_sdi2csv = pn.widgets.Button(name="SDI to CSV")
 
 # Attach the update function
 menu_lake.on_click(update_content)
 menu_eac.on_click(update_content)
-menu_write_xyz.on_click(update_content)
+menu_sdi2csv.on_click(update_content)
 
 # Build the sidebar
 sidebar = pn.Column(
@@ -45,7 +45,7 @@ sidebar = pn.Column(
     # pn.layout.Divider(),
     menu_lake,
     menu_eac,
-    menu_write_xyz,
+    menu_sdi2csv,
     width=25,
 )
 
