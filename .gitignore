@@ -7,3 +7,5 @@
 *.egg-info
 src/hydrosurvey/__pycache__/*
 src/hydrosurvey/widgets/__pycache__/__init__.cpython-312.pyc
+.DS_Store
+.vscode/settings.json
