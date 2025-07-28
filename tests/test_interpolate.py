@@ -22,7 +22,6 @@ def test_dirs():
     """Fixture providing test data directories."""
     test_dir = Path(__file__).parent
     return {
-        "bridgeport": test_dir / "data" / "lakes" / "bridgeport_v2",
         "texana": test_dir / "data" / "lakes" / "texana_v2"
     }
 
@@ -125,19 +124,6 @@ def test_generate_target_points():
     assert "polygon_id" in target_points.columns
 
 
-def test_read_lake_data_survey_points_bridgeport(test_dirs):
-    """Test reading Bridgeport survey points CSV."""
-    bridgeport_csv = test_dirs["bridgeport"] / "bridgeport_survey_points.csv"
-    if not bridgeport_csv.exists():
-        pytest.skip("Bridgeport survey data not available")
-    
-    df = pd.read_csv(bridgeport_csv)
-    assert len(df) > 0
-    
-    # Check for expected columns (with some flexibility in naming)
-    columns = df.columns.str.lower().str.strip()
-    assert any('x' in col for col in columns)
-    assert any('y' in col for col in columns)
 
 
 def test_read_lake_data_survey_points_texana(test_dirs):

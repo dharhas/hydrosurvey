@@ -21,7 +21,6 @@ def test_dirs():
     """Fixture providing test data directories."""
     test_dir = Path(__file__).parent
     return {
-        "bridgeport": test_dir / "data" / "lakes" / "bridgeport_v2",
         "texana": test_dir / "data" / "lakes" / "texana_v2",
         "sdi": test_dir / "data" / "sdi"
     }
