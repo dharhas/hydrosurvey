@@ -4738,9 +4738,33 @@ packages:
   timestamp: 1736762386663
 - pypi: ./
   name: hydrosurvey
-  version: 0.4.1.dev0+g618140d.d20250728
-  sha256: 53209d141c59c0ae529379055a26d93352224e59e78938bf438e17d82cf2f21d
-  requires_python: '>=3.9'
+  version: 0.4.1.dev0+g606b5b3.d20250728
+  sha256: 0ee62a7b9b0696640f9acfb97d6dad9fed2af71e0530a9dbba14dc24479c4830
+  requires_dist:
+  - geopandas>=1.0.0
+  - hydrofunctions>=0.2.0
+  - matplotlib>=3.5.0
+  - numpy>=1.21.0
+  - pandas>=1.3.0
+  - questionary>=1.10.0
+  - scipy>=1.7.0
+  - shapely>=1.8.0
+  - tomli-w>=1.0.0
+  - tqdm>=4.60.0
+  - typer>=0.9.0
+  - build>=0.10.0 ; extra == 'dev'
+  - hatch>=1.0.0 ; extra == 'dev'
+  - mypy>=1.0.0 ; extra == 'dev'
+  - pytest>=7.0.0 ; extra == 'dev'
+  - ruff>=0.1.0 ; extra == 'dev'
+  - bokeh>=3.0.0 ; extra == 'gui'
+  - geoviews>=1.9.0 ; extra == 'gui'
+  - hvplot>=0.8.0 ; extra == 'gui'
+  - jupyter-bokeh>=3.0.0 ; extra == 'gui'
+  - panel>=1.0.0 ; extra == 'gui'
+  - pytest-cov>=4.0.0 ; extra == 'test'
+  - pytest>=7.0.0 ; extra == 'test'
+  requires_python: '>=3.10'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/hyperframe-6.0.1-pyhd8ed1ab_1.conda
   sha256: e91c6ef09d076e1d9a02819cd00fa7ee18ecf30cdd667605c853980216584d1b

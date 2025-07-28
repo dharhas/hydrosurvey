@@ -1,10 +1,79 @@
 [project]
-authors = [{name = "Dharhas Pothina", email = "dharhas@gmail.com"}]
-dependencies = []
-description = "Add a short description here"
 name = "hydrosurvey"
-requires-python = ">= 3.9"
 dynamic = ["version"]
+description = "Tools for processing and analyzing hydroacoustic survey data from lakes and reservoirs"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Dharhas Pothina", email = "dharhas@gmail.com"}
+]
+maintainers = [
+    {name = "Dharhas Pothina", email = "dharhas@gmail.com"}
+]
+keywords = [
+    "hydroacoustic",
+    "bathymetry", 
+    "lakes",
+    "reservoirs",
+    "sediment",
+    "survey",
+    "interpolation",
+    "GIS"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Scientific/Engineering :: Hydrology",
+    "Topic :: Scientific/Engineering :: Visualization"
+]
+requires-python = ">= 3.10"
+dependencies = [
+    "geopandas>=1.0.0",
+    "numpy>=1.21.0",
+    "pandas>=1.3.0",
+    "scipy>=1.7.0",
+    "shapely>=1.8.0",
+    "typer>=0.9.0",
+    "tqdm>=4.60.0",
+    "questionary>=1.10.0",
+    "tomli-w>=1.0.0",
+    "matplotlib>=3.5.0",
+    "hydrofunctions>=0.2.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/dharhas/hydrosurvey"
+Repository = "https://github.com/dharhas/hydrosurvey"
+Documentation = "https://github.com/dharhas/hydrosurvey#readme"
+Issues = "https://github.com/dharhas/hydrosurvey/issues"
+Changelog = "https://github.com/dharhas/hydrosurvey/releases"
+
+[project.optional-dependencies]
+gui = [
+    "panel>=1.0.0",
+    "hvplot>=0.8.0",
+    "geoviews>=1.9.0",
+    "bokeh>=3.0.0",
+    "jupyter-bokeh>=3.0.0"
+]
+dev = [
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "build>=0.10.0",
+    "hatch>=1.0.0"
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0"
+]
 
 [build-system]
 build-backend = "hatchling.build"
