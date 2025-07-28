@@ -14,6 +14,10 @@ class WriteXYZViewer(Viewer):
             name="SDI Files Folder",
             only_folders=True,
         )
+        self.apply_tide_corrections = pn.widgets.Checkbox(
+            name="Apply Tide Corrections",
+            value=False,
+        )
         self.tide_file = FileFolderPicker(
             name="Tide File (USGS RDB format)",
             only_folders=False,
@@ -24,9 +28,21 @@ class WriteXYZViewer(Viewer):
             placeholder="Enter USGS parameter code",
         )
 
+        # Create a column for tide-related widgets
+        self.tide_widgets = pn.Column(
+            self.tide_file,
+            self.usgs_parameter,
+            visible=False,
+        )
+
+        # Watch the checkbox to show/hide tide widgets
+        self.apply_tide_corrections.param.watch(
+            self._toggle_tide_widgets, "value"
+        )
+
         self.cli_command = pn.widgets.StaticText(
             name="CLI Command: ",
-            value="hstools write-xyz /path/to/sdi/folder /path/to/tide.rdb /path/to/output.csv <usgs_parameter>",
+            value="hstools write-xyz /path/to/sdi/folder /path/to/output.csv",
         )
 
         self.run_button = pn.widgets.Button(name="Run Write XYZ")
@@ -47,8 +63,8 @@ class WriteXYZViewer(Viewer):
             pn.Row(
                 pn.Column(
                     self.sdi_folder,
-                    self.tide_file,
-                    self.usgs_parameter,
+                    self.apply_tide_corrections,
+                    self.tide_widgets,
                     self.output_file_dir,
                     self.output_file_name,
                 ),
@@ -60,19 +76,30 @@ class WriteXYZViewer(Viewer):
             ),
         )
 
+    def _toggle_tide_widgets(self, event):
+        """Toggle visibility of tide-related widgets based on checkbox state."""
+        self.tide_widgets.visible = event.new
+
     def run_write_xyz(self, event):
         command = [
             "hstools",
             "write-xyz",
             self.sdi_folder.get_selected()["filepath"],
-            self.tide_file.get_selected()["filepath"],
             str(
                 Path(self.output_file_dir.get_selected()["filepath"])
                 .joinpath(self.output_file_name.value)
                 .with_suffix(".csv")
             ),
-            self.usgs_parameter.value,
         ]
+
+        # Add tide correction parameters if checkbox is checked
+        if self.apply_tide_corrections.value:
+            command.extend([
+                "--tide-file",
+                self.tide_file.get_selected()["filepath"],
+                "--usgs-parameter",
+                self.usgs_parameter.value,
+            ])
 
         self.cli_command.value = " ".join(command)
         self.command_runner.run_command(command)

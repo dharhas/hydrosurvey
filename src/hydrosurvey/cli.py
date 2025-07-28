@@ -57,7 +57,10 @@ def main(
 
 @app.command()
 def write_xyz(
-    path: Path, tide_file: str, output_file: str, usgs_parameter: str
+    path: Path, 
+    output_file: str,
+    tide_file: Optional[str] = None,
+    usgs_parameter: Optional[str] = None
 ):  # usgs_site, usgs_parameter):
     """Reads SDI binary and pick files and writes to xyz file."""
     path = Path(path)
@@ -117,11 +120,14 @@ def write_xyz(
     for k in [k for k in data.keys() if "depth" in k]:
         data[k] = data[k] * 3.28084
 
-    # get tide data
-    metadata, tide, cols, _ = hf.usgs_rdb.read_rdb(open(tide_file, "r").read())
-    tide = tide.set_index("datetime").rename(columns={usgs_parameter: "lake_elevation"})
-    tide = tide[["lake_elevation"]]
-    tide.index = pd.to_datetime(tide.index)
+    # Apply tide corrections if tide file is provided
+    if tide_file and usgs_parameter:
+        print("Applying tide corrections...")
+        # get tide data
+        metadata, tide, cols, _ = hf.usgs_rdb.read_rdb(open(tide_file, "r").read())
+        tide = tide.set_index("datetime").rename(columns={usgs_parameter: "lake_elevation"})
+        tide = tide[["lake_elevation"]]
+        tide.index = pd.to_datetime(tide.index)
 
     # start_date = (data.datetime.min() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
     # end_date = (data.datetime.max() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
@@ -137,21 +143,25 @@ def write_xyz(
     # )
     # tide = tide.df(usgs_parameter).tz_convert("US/Central")
 
-    # tide.index.name = "datetime"
-    # tide = tide.tz_convert("US/Central")
+        # tide.index.name = "datetime"
+        # tide = tide.tz_convert("US/Central")
 
-    print("Interpolating tide data to match survey data")
-    merged = data.merge(tide, on="datetime", how="outer").sort_values("datetime")
-    merged = merged.interpolate(method="index").dropna()
-    print("Calculating surface elevations")
-    merged["current_surface"] = merged["lake_elevation"] - merged["depth_surface_1"]
-    if "depth_surface_2" in merged.columns:
-        merged["pre_impoundment_surface"] = (
-            merged["lake_elevation"] - merged["depth_surface_2"]
-        )
-        merged["sediment_thickness"] = (
-            merged["depth_surface_2"] - merged["depth_surface_1"]
-        )
+        print("Interpolating tide data to match survey data")
+        merged = data.merge(tide, on="datetime", how="outer").sort_values("datetime")
+        merged = merged.interpolate(method="index").dropna()
+        print("Calculating surface elevations")
+        merged["current_surface"] = merged["lake_elevation"] - merged["depth_surface_1"]
+        if "depth_surface_2" in merged.columns:
+            merged["pre_impoundment_surface"] = (
+                merged["lake_elevation"] - merged["depth_surface_2"]
+            )
+            merged["sediment_thickness"] = (
+                merged["depth_surface_2"] - merged["depth_surface_1"]
+            )
+    else:
+        print("No tide corrections applied - outputting raw depth data")
+        merged = data.reset_index()
+        
     merged.to_csv(output_file)
     print(f"Done! Saved to {output_file}")
 
