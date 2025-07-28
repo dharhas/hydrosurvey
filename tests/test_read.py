@@ -15,7 +15,7 @@ class TestRead(unittest.TestCase):
 
     def test_read(self):
         """ Test that all test files can be read without errors """
-        for root, dirs, files in os.walk(os.path.join(self.test_dir, 'files')):
+        for root, dirs, files in os.walk(os.path.join(self.test_dir, 'data', 'sdi')):
             for filename in files:
                 if filename.endswith('.bin'):
                     d = Dataset(os.path.join(root, filename))
@@ -31,28 +31,28 @@ class TestRead(unittest.TestCase):
     def test_fill_nans(self):
         """ Test for "IndexError: tuple index out of range"
         """
-        filename = os.path.join(self.test_dir, 'files', '07050823.bin')
+        filename = os.path.join(self.test_dir, 'data', 'sdi', '07050823.bin')
         d = Dataset(filename)
         data = d.as_dict()
 
     def test_overflowerror(self):
         """ Test for "OverflowError: Python int too large to convert to C long"
         """
-        filename = os.path.join(self.test_dir, 'files', '09062409.bin')
+        filename = os.path.join(self.test_dir, 'data', 'sdi', '09062409.bin')
         d = Dataset(filename)
         data = d.as_dict()
 
     def test_discontinuity(self):
         """ Test for "IndexError: index out of bounds"
         """
-        filename = os.path.join(self.test_dir, 'files', '08091852.bin')
+        filename = os.path.join(self.test_dir, 'data', 'sdi', '08091852.bin')
         d = Dataset(filename)
         data = d.as_dict()
 
     def test_separate_false(self):
         """ Test that separate=False works as expected
         """
-        filename = os.path.join(self.test_dir, 'files', '07050823.bin')
+        filename = os.path.join(self.test_dir, 'data', 'sdi', '07050823.bin')
         d = Dataset(filename)
         data = d.as_dict(separate=False)
 

@@ -48,7 +48,7 @@ class TestReadMeta(unittest.TestCase):
 
         for name, test_data in self.test_data.items():
             for ext, surface_number in zip(["pic", "pre"], [1, 2]):
-                filename = os.path.join(self.test_dir, "files", name + "." + ext)
+                filename = os.path.join(self.test_dir, "data", "sdi", name + "." + ext)
                 print("testing %s" % filename)
                 data = read(filename)
                 assert np.isclose(data["draft"], test_data["draft"], atol=1e-4)

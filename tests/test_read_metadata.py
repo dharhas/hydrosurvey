@@ -71,7 +71,7 @@ class TestReadMeta(unittest.TestCase):
         """
 
         for name, metadata in self.test_data.items():
-            filename = os.path.join(self.test_dir, "files", name)
+            filename = os.path.join(self.test_dir, "data", "sdi", name)
             d = read(filename)
             f200 = d["frequencies"][-1]
             print("testing %s against DepthPic" % (filename))
@@ -90,7 +90,7 @@ class TestReadMeta(unittest.TestCase):
         the reader this is a reasonable sanity check.
         """
 
-        for root, dirs, files in os.walk(os.path.join(self.test_dir, "files")):
+        for root, dirs, files in os.walk(os.path.join(self.test_dir, "data", "sdi")):
             for filename in files:
                 if filename.endswith(".bin"):
                     jsonfile = os.path.join(root, filename.replace(".bin", ".json"))

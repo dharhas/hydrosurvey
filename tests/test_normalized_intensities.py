@@ -15,7 +15,7 @@ class TestRead(unittest.TestCase):
 
     def test_normalized_intensities(self):
         """ Test that normalized intensities lie in the interval [0,1] """
-        for root, dirs, files in os.walk(os.path.join(self.test_dir, 'files')):
+        for root, dirs, files in os.walk(os.path.join(self.test_dir, 'data', 'sdi')):
             for filename in files:
                 if filename.endswith('.bin'):
                     d = Dataset(os.path.join(root, filename))
