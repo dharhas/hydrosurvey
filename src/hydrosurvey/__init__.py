@@ -1,11 +1,9 @@
 """Hydrosurvey package."""
 
-try:
-    from importlib.metadata import PackageNotFoundError, version
-except ImportError:  # pragma: no cover
-    from importlib_metadata import PackageNotFoundError, version  # type: ignore
+from importlib import metadata
 
 try:
-    __version__ = version("hydrosurvey")
-except PackageNotFoundError:  # pragma: no cover
-    __version__ = "unknown"
+    __version__ = metadata.version("hydrosurvey")
+except metadata.PackageNotFoundError:
+    # The package is not installed, so we don't know the version
+    __version__ = "0.0.0"
