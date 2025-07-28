@@ -1,41 +1,63 @@
-name: Tests
+name: Test
 
 on:
   push:
-    branches: [ main ]
+    branches: 
+      - main
+    tags:
+      - '*'
   pull_request:
     branches: [ main ]
 
+concurrency:
+  # Concurrency group that uses the workflow name and PR number if available
+  # or commit SHA as a fallback. If a new build is triggered under that
+  # concurrency group while a previous build is running it will be canceled.
+  # Repeated pushes to a PR will cancel all previous builds, while multiple
+  # merges to main will not cancel.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}, py${{ matrix.python-version }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["310", "311", "312"]
       fail-fast: false
 
+    env:
+      PIXI_ENV_NAME: test-py${{ matrix.python-version }}
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        with:
+          fetch-depth: 0
+      - uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659 # v0.8.1
+        with:
+          environments: ${{ env.PIXI_ENV_NAME }}
+      - name: Setup project
+        run: |
+          echo "channels: [conda-forge]" > .pixi/envs/${{ env.PIXI_ENV_NAME }}/.condarc
+          pixi run --environment ${{ env.PIXI_ENV_NAME }} conda info
+      - name: Run tests
+        run: pixi run --environment ${{ env.PIXI_ENV_NAME }} test --basetemp=${{ runner.os == 'Windows' && 'D:\\temp' || runner.temp }}
 
-    - name: Setup Pixi
-      uses: prefix-dev/setup-pixi@v0.8.14
-      with:
-        pixi-version: v0.30.0
-        cache: true
-
-    - name: Install dependencies
-      run: pixi install
-
-    - name: Run linting
-      run: pixi run lint
-      continue-on-error: true
-
-    - name: Run type checking
-      run: pixi run typecheck
-      continue-on-error: true
-
-    - name: Run tests
-      run: pixi run test
+  build-conda:
+    name: Build conda package (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        with:
+          fetch-depth: 0
+      - uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659 # v0.8.1
+        with:
+          environments: build
+      - name: Build recipe
+        run: pixi run --environment build build
